@@ -1,0 +1,9 @@
+<div>
+    Report file name:<br>
+    The result of the scheduled tests is saved to an xml file.
+    Per default this file is named "report.xml", but if you are using other build or post build plugins, this file name can already be in use. If so, change the name to something unique.
+    The result file is saved in the following location: "{User path to Jenkins}/Jenkins/workspace/{JOB_NAME}/"
+    To read the generated report files into the build project, add the "Publish Junit test result report" plugin as a "post-build action".
+    In this plugin, use the report file name specified in the Leaptest plugin in 'Test Report XMLs" field (most likely "report.xml"),
+    and please ignore any warnings that the file can't be found - it will be created later.
+</div>>

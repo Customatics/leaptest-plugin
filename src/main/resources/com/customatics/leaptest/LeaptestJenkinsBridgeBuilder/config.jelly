@@ -1,0 +1,140 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <!--
+    This jelly script is used for per-project configuration.
+
+    See global.jelly for a general discussion about jelly script.
+  -->
+
+  <!--
+    Creates a text field that shows the value of the "name" property.
+    When submitted, it will be passed to the corresponding constructor parameter.
+  -->
+
+    <f:entry title="Plugin Version:"  field="version">
+    <select name="version">
+        <option value="1.1.0">1.1.0</option>
+    </select>
+    </f:entry>
+  <f:entry title="Server Address:" field="address">
+    <f:textbox name="address"/>
+  </f:entry>
+
+    <f:entry title="Report file name:" field="report">
+        <f:textbox name="report" value="report.xml"/>
+    </f:entry>
+    <f:entry  field="schIds" >
+        <f:textarea  id = "schIds"  name="schIds" readonly="true" />
+    </f:entry>
+
+    <f:entry title="Schedule Names" field="schNames" >
+        <f:textarea id="schNames" name="schNames" readonly="true"/>
+    </f:entry>
+     <f:entry>
+         <span class="yui-button">
+              <span class="first-child">
+       <button type="button" id="mainButton" visibility="visible"  onclick="GetSch()" value="Select Schedules">Select Schedules</button>
+              </span>
+         </span>
+      <div id="MyContainer" class="popupDiv" style="display:none; min-width:250px; max-width:700px;">
+
+      </div>
+   </f:entry>
+    <f:advanced>
+        <f:entry title="Delay (seconds):" field="delay">
+            <f:textbox name="delay" value="5"/>
+        </f:entry>
+        <f:entry title="Done Status:"  field="doneStatusAs" >
+            <select name="doneStatusAs">
+                <option value="Failed">Failed</option>
+                <option value="Success">Success</option>
+            </select>
+        </f:entry>
+    </f:advanced>
+    <!--
+    <f:entry>
+    <f:validateButton title="Get Schedules" progress="${%Testing...}" method="testConnection" with="address"/>
+    </f:entry>
+    -->
+
+<script type="text/javascript" language="JavaScript">
+var script = document.createElement('script');
+script.type = "text/javascript";
+script.language="JavaScript" ;
+script.src = "${rootURL}/plugin/leaptest/buttonscript.js";
+document.body.appendChild(script);
+
+script.onload = script.onerror = function() {
+if (!this.executed) {
+this.executed = true;
+}
+
+    var css1 = 'ul.ul-treefree { padding-left:25px;  font-weight: bold;} ul.ul-treefree ul { margin:0; padding-left:6px;  } ul.ul-treefree li { position:relative; list-style:none outside none; border-left:solid 1px #999; margin:0; padding:0 0 0 19px; line-height:23px; } ul.ul-treefree li:before { content:""; display:block; border-bottom:solid 1px #999; position:absolute; width:18px; height:11px; left:0; top:0; } ul.ul-treefree li:last-child { border-left:0 none; } ul.ul-treefree li:last-child:before { border-left:solid 1px #999; } ul.ul-dropfree div.drop { width:11px; height:11px; position:absolute; z-index:10; top:6px; left:-6px; background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAALCAIAAAD0nuopAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAE1JREFUeNpinDlzJgNlgAWI09LScEnPmjWLoAImrHpIAkwMFAMqGMGC6X44GzkIsHoQooAFTTVQKdbAwxOigyMsmIh3MC7ASHnqBAgwAD4CGeOiDhXRAAAAAElFTkSuQmCC"); background-position:-11px 0; background-repeat:no-repeat; cursor:pointer;}';
+
+    var css2 = ' .popupDiv { background-color: white; background-clip:padding-box; overflow:hidden; position:absolute; display:none; padding:3px 0.5em; border: 1px solid; border-color: #ccc #666 #666 #ccc; border-color: rgba(0, 0, 0, 0.2); box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); text-align: left; z-index: 100;}';
+    css2 += ' html:not(.ua-mac) .popupDiv { -webkit-transform: translateZ(0); transform: none;}';
+    css2 += ' .popupDiv.quickLinksMenuPopup {width: auto; min-width: 25em;}';
+    css2 += ' .popupDiv.popupLoading {background-color: #FFF; padding: 5px !important;}';
+    css2 += ' #warningPopup {background-color: #ffc;}';
+    css2 += ' a.actionLinkNew {background-color: #fff; padding: 3px 10px 3px;}';
+    css2 += ' a.actionLinkNew:hover, a.actionLinkNewHover {background-color: #e3e9ef;}';
+    css2 += ' #changesPopup {width: 42em; padding: 0; z-index: 80;}';
+    css2 += ' #changesPopup .changesContainer { margin: 0; padding: 5px 10px;}';
+    css2 += ' #changesPopup .userChangesHeader { background-color: #F0F5FB; padding: 2px 5px; font-size: 95%; font-weight: bold; border: none;}';
+    css2 += ' #changesPopup .userChangesHeader.highlightChanges { background-color: #FFC;}';
+    css2 += ' #changesPopup .userChangeComment {overflow-x: hidden; margin-right: .5em; font-size: 90%; line-height: 1.5em;}';
+    css2 += ' #changesPopup .userChangeFiles { float: right; min-width: 6em; font-size: 85%; text-align: right;}';
+    css2 += ' #changesPopup .userChangeFiles span.highlightChanges{ left: 0;}';
+    css2 += ' #changesPopup .userChanges {border: none;}';
+    css2 += ' #changesPopup .userChange {clear: both; padding: 5px 0 5px 5px; border-bottom: 1px solid #E3E9EF;}';
+    css2 += ' #changesPopup .userChange:last-of-type {border: none;}';
+    css2 += ' #changesPopup .artifactCommentTable {width: 100%;}';
+    css2 += ' #changesPopup .artifactCommentBuildType {width: 30%; vertical-align: top;}';
+    css2 += ' #changesPopup .buildChangesHeader {font-weight: normal;}';
+    css2 += ' #changesPopup .buildStartDate {float: right;font-size: 90%;}';
+    css2 += ' #changesPopup .buildChanges {width: 100%;}';
+    css2 += ' #changesPopup .buildChanges td.username {width: 30%; font-weight: bold; font-size: 90%;}';
+    css2 += ' #changesPopup .buildChanges td.userChange {width: 70%;}';
+    css2 += ' #changesPopup .changesPopupTable {width: 100%; }';
+    css2 += ' #changesPopup .changesPopupTable th {padding-right: 1em;}';
+    css2 += ' #changesPopup .changesPopupTable td.files {text-align: right;}';
+    css2 += ' #changesPopup .changesPopupTable td.user { padding-right: 1.5em; text-align: right;}';
+    css2 += ' #changesPopup .changesPopupTable .date {padding-right: 1.5em;}';
+    css2 += ' #changesPopup .changesPopupTable td, #changesPopup .simpleTabs .tabs {margin: 5px 0 0 10px; overflow: auto; }';
+    css2 += ' #changesPopup table.buildChanges { border-collapse: collapse;}';
+    css2 += ' #changesPopup table.buildChanges td.username, #changesPopup table.buildChanges td.userChangeTD { border-bottom: 1px solid #E3E9EF;}';
+    css2 += ' #changesPopup table.buildChanges div.userChange {border: none;}';
+    css2 += ' #changesPopup .ellipsis, span.textExpandArrow { display: inline-block; width: 22px; height: 1em;background: #F3F3F3;border: 1px solid #C8C8C8;border-radius: 2px;color: #C8C8C8;text-align: center;}';
+    css2 += ' #changesPopup .ellipsis:hover, span.textExpandArrow:hover {cursor: pointer; background: #E3E3E3;}';
+    css2 += ' #changesPopup .historyBuildNote { margin-bottom: 4px;}';
+    css2 += ' #changesPopup .changePopupHeader, #changesPopup .changesPopupFooter {background-color: #f5f5f5;padding: 4px;font-size: 90%;}';
+    css2 += ' #changesPopup .changePopupHeader {margin-bottom: 6px; border-bottom: 1px solid #E3E9EF;}';
+    css2 += ' #changesPopup .changePopupFooter {margin-top: 6px;}';
+    css2 += ' #changesPopup .userChangeComment td.status, #changesPopup .userChangeComment td.buildNumber {vertical-align: top;}';
+    css2 += ' #changesPopup .userChangeComment td.buildNumber {width: 10%;}';
+    css2 += ' #changesPopup .artifactsChangeHeader {background-position: 5px 3px; padding-left: 25px;}';
+    css2 += ' span.changeName {font-size: 90%;}';
+    css2 += ' div.dependencyRelationIcon {float: right;}';
+    css2 += ' div.subrepoIcon {float: right;}';
+
+
+
+    var css = css1 + css2,
+    head = document.head || document.getElementsByTagName('head')[0],
+    style = document.createElement('style');
+
+    style.type = 'text/css';
+    if (style.styleSheet){
+    style.styleSheet.cssText = css;
+    } else {
+    style.appendChild(document.createTextNode(css));
+    }
+
+    head.appendChild(style);
+
+    var schtextarea = document.getElementById("schIds");
+    schtextarea.style.display = 'none';
+};
+</script>
+
+</j:jelly>
