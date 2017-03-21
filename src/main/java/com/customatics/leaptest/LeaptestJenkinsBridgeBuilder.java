@@ -315,7 +315,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
             listener.error(e.getMessage());
         }
         catch (Exception e){
-            String errormessage = String.format(" Check it at your Leaptest server or connection to your server and try again!",  schTitle, schId);
+            String errormessage = String.format("Failed to run %1$s[%2$s]! Check it at your Leaptest server or connection to your server and try again!",  schTitle, schId);
             listener.error(errormessage);
             buildResult.Schedules.get(current).Error(errormessage);
             buildResult.Schedules.get(current).incErrors();
