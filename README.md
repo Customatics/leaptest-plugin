@@ -32,11 +32,11 @@ Leaptest is a mighty automation testing system and now it can be used for runnin
 
 # Pipeline
 This is an example script for pipeline:
- 
+ ```
 node
 {
     stage "Leaptest-Jenkins"
-  
+
     step([$class: 'LeaptestJenkinsBridgeBuilder',
     version:"1.1.0",
     address:"http://win10-agent2:9000",
@@ -47,22 +47,18 @@ node
     schNames:"Problem schedule, Open Applications"
     ]);
    step([$class: 'JUnitResultArchiver',
+   testResults: 'report.xml']);
    
-   testResults: 'report.xml'])
-   
-   /*
     if(currentBuild.result!="FAILURE")
     {
     echo "RESULT: ${currentBuild.result}  SUCCESS INFO"
-    // do something else
-   
+    // do something else  
     }
     else
     {   stage("FAIL Stage")
         echo "RESULT: ${currentBuild.result}  FAIL INFO"
          // do something else
-       
-    }
-    */
-
+    }  
+}
+```
 
