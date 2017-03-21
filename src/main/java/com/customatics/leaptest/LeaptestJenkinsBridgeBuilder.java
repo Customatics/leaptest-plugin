@@ -27,6 +27,8 @@ import javax.xml.bind.Marshaller;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 
@@ -67,7 +69,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
     public String getReport(){return  report;}
 
 
-    private static String JsonToJenkins( String str, int current, final TaskListener listener, MutableBoolean isRunning, String doneStatus, testsuites buildResult)
+    private static String JsonToJenkins( String str, int current, final TaskListener listener, MutableBoolean isRunning, String doneStatus, testsuites buildResult, HashMap<String, String> InValidSchedules)
     {
 
         String JenkinsMessage = "";
@@ -197,17 +199,19 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
             }
             else
             {
-                buildResult.Schedules.get(current).Error(String.format("Schedule [%1$s] returns bad JSON: &#xA; %2$s", ScheduleId, str));
+                String errorMessage = String.format("Schedule [%1$s] returns bad JSON: &#xA; %2$s", ScheduleId, str);
+                buildResult.Schedules.get(current).Error(errorMessage);
                 buildResult.Schedules.get(current).Cases.add(new testcase("Bad Json:", "Failed", 0, str, ScheduleId));
                 buildResult.Schedules.get(current).incErrors();
                 listener.error(String.format("Schedule[%1$s] returns bad JSON:\n %2$s",  ScheduleId,str));
+                InValidSchedules.put(ScheduleId,errorMessage);
             }
         }
 
         return JenkinsMessage;
     }
 
-    private static  void GetSchTitlesOrIds(String uri, ArrayList<String> scheduleInfo, final TaskListener listener, HashMap<String, String> schedules, testsuites buildResult, ArrayList<String> InValidSchedules)
+    private static  void GetSchTitlesOrIds(String uri, ArrayList<String> scheduleInfo, final TaskListener listener, HashMap<String, String> schedules, testsuites buildResult, HashMap<String, String> InValidSchedules)
     {
         try
         {
@@ -252,29 +256,28 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
                     }
                     else
                     {
-
                     }
                 }
 
                 if (!success)
-                { InValidSchedules.add(scheduleInfo.get(i)); }
+                { InValidSchedules.put(scheduleInfo.get(i),"Tried to get schedule title or id! Check connection to your server and try again!");}
             }
             return ;
         }
         catch (InterruptedException e) {
-            listener.error(String.format(" Tried to get schedule titles or id! Check connection to your server and try again!"));
             listener.error(e.getMessage());
         } catch (ExecutionException e) {
-            listener.error(String.format(" Tried to get schedule titles or id! Check connection to your server and try again!"));
             listener.error(e.getMessage());
         } catch (IOException e) {
-            listener.error(String.format(" Tried to get schedule titles or id! Check connection to your server and try again!"));
             listener.error(e.getMessage());
-
+        }
+        catch (Exception e)
+        {
+            listener.error(String.format("Tried to get schedule titles or id! Check connection to your server and try again!"));
         }
     }
 
-    private static void RunSchedule(String uri, String schId, String schTitle, int current,final TaskListener listener, MutableBoolean successfullyLaunchedSchedule, testsuites buildResult, ArrayList<String> InValidSchedules)
+    private static void RunSchedule(String uri, String schId, String schTitle, int current,final TaskListener listener, MutableBoolean successfullyLaunchedSchedule, testsuites buildResult, HashMap<String, String> InValidSchedules)
     {
         try
         {
@@ -287,8 +290,11 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
             if (response.getStatusCode() != 204)          // 204 Response means correct schedule launching
             {
 
-                throw new ErrorCodeException(response.getStatusCode(),response.getStatusText());
 
+                String errormessage = String.format("Code: %1$s Status: %2$s!", response.getStatusCode(), response.getStatusText());
+                listener.error(errormessage);
+                buildResult.Schedules.get(current).Error(errormessage);
+                throw new Exception();
             }
             else
             {
@@ -301,10 +307,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
 
             return;
         }
-        catch (ErrorCodeException e) {
-            buildResult.Schedules.get(current).Error(e.getMessage());
-            listener.error(e.getMessage());
-        } catch (InterruptedException e) {
+         catch (InterruptedException e) {
             buildResult.Schedules.get(current).Error(e.getMessage());
             listener.error(e.getMessage());
         } catch (ExecutionException e) {
@@ -319,13 +322,13 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
             listener.error(errormessage);
             buildResult.Schedules.get(current).Error(errormessage);
             buildResult.Schedules.get(current).incErrors();
-            InValidSchedules.add(schId);
+            InValidSchedules.put(schId,buildResult.Schedules.get(current).Error());
             successfullyLaunchedSchedule.setValue(false);
         }
 
     }
 
-    private static void GetScheduleState(String uri, String schId, String schTitle, int current, final TaskListener listener, MutableBoolean isRunning, String doneStatus, testsuites buildResult, ArrayList<String> InValidSchedules)
+    private static void GetScheduleState(String uri, String schId, String schTitle, int current, final TaskListener listener, MutableBoolean isRunning, String doneStatus, testsuites buildResult, HashMap<String, String> InValidSchedules)
     {
         try
         {
@@ -336,19 +339,19 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
 
             if(response.getStatusCode() != 200)
             {
-                throw new ErrorCodeException(response.getStatusCode(),response.getStatusText());
+                String errormessage = String.format("Code: %1$s Status: %2$s!", response.getStatusCode(), response.getStatusText());
+                listener.error(errormessage);
+                buildResult.Schedules.get(current).Error(errormessage);
+                throw new Exception();
             }
             else
             {
 
-                JsonToJenkins( response.getResponseBody(), current, listener, isRunning, doneStatus, buildResult);
+                JsonToJenkins( response.getResponseBody(), current, listener, isRunning, doneStatus, buildResult, InValidSchedules);
 
             }
         }
-        catch (ErrorCodeException e) {
-            listener.error(e.getMessage());
-            buildResult.Schedules.get(current).Error(e.getMessage());
-        } catch (InterruptedException e) {
+        catch (InterruptedException e) {
             listener.error(e.getMessage());
             buildResult.Schedules.get(current).Error(e.getMessage());
         } catch (ExecutionException e) {
@@ -359,11 +362,11 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
             buildResult.Schedules.get(current).Error(e.getMessage());
         }catch (Exception e)
         {
-            String errorMessage = String.format("  Tried to get %1$s[%2$s] state! Check connection to your server and try again!", schTitle, schId);
+            String errorMessage = String.format("Tried to get %1$s[%2$s] state! Check connection to your server and try again!", schTitle, schId);
             buildResult.Schedules.get(current).Error(errorMessage);
             buildResult.Schedules.get(current).incErrors();
             listener.error(errorMessage);
-            InValidSchedules.add(schId);
+            InValidSchedules.put(schId,buildResult.Schedules.get(current).Error());
         }
     }
 
@@ -413,6 +416,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
 
         EnvVars env = build.getEnvironment(listener);
         HashMap<String, String> schedules = new HashMap<String, String>(); // Id-Title
+        HashMap<String,String> InValidSchedules = new HashMap<>(); // Id-Stack trace
         MutableBoolean isRunning = new MutableBoolean(false);
         MutableBoolean successfullyLaunchedSchedule =  new MutableBoolean(false);
 
@@ -435,7 +439,8 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
         String[] schidsArray = schIds.split("\n|, |,");//was "\n"
         String[] testsArray = schNames.split("\n|, |,");//was "\n"
 
-        ArrayList<String> InValidSchedules = new ArrayList<String>();
+       // ArrayList<String> InValidSchedules = new ArrayList<String>();
+
         testsuites buildResult = new testsuites();
 
         ArrayList<String> scheduleInfo = new ArrayList<String>();
@@ -494,19 +499,24 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
             if (InValidSchedules.size() > 0)
             {
                 listener.getLogger().println("INVALID SCHEDULES:");
-                for (String invalidsch : InValidSchedules)
+                for (String invalidsch : InValidSchedules.keySet())
                 {
                     listener.getLogger().println(invalidsch);
                 }
 
                 buildResult.Schedules.add(new testsuite("INVALID SCHEDULES"));
 
+                ArrayList<String> invSch = new ArrayList<>(InValidSchedules.keySet());
+                ArrayList<String> invSchStackTrace = new ArrayList<>(InValidSchedules.values());
 
-                for (int i = 0; i < InValidSchedules.size(); i++)
+               for(int i = 0; i < InValidSchedules.size();i++)
                 {
-                    buildResult.Schedules.get(buildResult.Schedules.size() - 1).Cases.add(new testcase(InValidSchedules.get(i), "Failed", 0, "Check this schedule on your Leaptest server and try again!", "INVALID SCHEDULE"));
+                    buildResult.Schedules.get(buildResult.Schedules.size() - 1).Cases.add(new testcase(invSch.get(i), "Failed", 0, invSchStackTrace.get(i), "INVALID SCHEDULE"));
                     buildResult.Schedules.get(buildResult.Schedules.size()- 1).incErrors();
                 }
+
+                invSch = null;
+                invSchStackTrace = null;
             }
 
 
@@ -531,7 +541,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
             {
                 build.setResult(Result.SUCCESS);
             }
-            listener.getLogger().println("Leaptest-Jenkins  plugin  successfully finished!");
+            listener.getLogger().println("Leaptest for Jenkins  plugin  successfully finished!");
         }
 
         catch (IndexOutOfBoundsException e)
@@ -544,7 +554,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
         }
         catch (Exception e)
         {
-            listener.error("Leaptest-Jenkins plugin finished with errors!");
+            listener.error("Leaptest for Jenkins plugin finished with errors!");
             build.setResult(Result.FAILURE);
         }
 
