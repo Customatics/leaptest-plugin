@@ -1,4 +1,4 @@
-package com.customatics.leaptest;
+package com.customatics.leaptest_plugin;
 
 
 public class MutableBoolean {

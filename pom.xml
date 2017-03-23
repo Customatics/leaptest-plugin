@@ -3,19 +3,16 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
         <version>2.11</version>
         <relativePath/>
     </parent>
-   <!-- <groupId>com.customatics</groupId> -->
-    <artifactId>leaptest</artifactId>
+    <groupId>com.customatics</groupId>
+    <artifactId>leaptest-plugin</artifactId>
     <version>1.0.0</version>
     <packaging>hpi</packaging>
-
-
     <dependencies>
         <dependency>
             <groupId>com.ning</groupId>
@@ -60,7 +57,7 @@
         -->
     </properties>
 
-    <name>Leaptest for Jenkins</name>
+    <name>Leaptest Integration</name>
     <description>Integrates Leaptest codeless test automation with Jenkins. Run tests, get results, generate reports.</description>
     <url>http://www.customatics.com/</url>
 
@@ -84,9 +81,9 @@
 
 
     <scm>
-        <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
-        <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
-        <url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
+        <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}.git</connection>
+        <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}git</developerConnection>
+        <url>http://github.com/jenkinsci/${project.artifactId}</url>
     </scm>
 
     <repositories>
@@ -101,5 +98,6 @@
             <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
+
 
 </project>

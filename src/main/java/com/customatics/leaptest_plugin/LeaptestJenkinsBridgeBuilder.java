@@ -1,4 +1,4 @@
-package com.customatics.leaptest;
+package com.customatics.leaptest_plugin;
 
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.Response;
@@ -27,8 +27,6 @@ import javax.xml.bind.Marshaller;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 
@@ -68,8 +66,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
     public String getDoneStatusAs(){return doneStatusAs;}
     public String getReport(){return  report;}
 
-
-    private static String JsonToJenkins( String str, int current, final TaskListener listener, MutableBoolean isRunning, String doneStatus, testsuites buildResult, HashMap<String, String> InValidSchedules)
+    private static String JsonToJenkins( String str, int current, final TaskListener listener, MutableBoolean isRunning,  String doneStatus, testsuites buildResult, HashMap<String, String> InValidSchedules)
     {
 
         String JenkinsMessage = "";
@@ -80,7 +77,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
         String ScheduleId = json.getString("ScheduleId");
 
 
-        if (!json.optString("Status").equals(""))
+        if (json.optString("Status").equals("Running"))
         {
             isRunning.setValue(true);
         }
@@ -114,7 +111,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
                 int DoneCount = 0;
                 temp = json.getJSONObject("LastRun").optInt("DoneCount",0);
                 if (temp > 0) {DoneCount = temp.intValue();}
-                
+
 
                 if (doneStatus.contains("Failed"))
                 {
@@ -135,9 +132,12 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
                 ArrayList<String> Elapsed = new ArrayList<String>();
                 for (int i = 0;  i < jsonArray.length(); i++) Elapsed.add(jsonArray.getJSONObject(i).getString("Elapsed"));
 
-                //CaseInfo
+
                 ArrayList<String> CaseName = new ArrayList<String>();
                 for (int i = 0;  i < jsonArray.length(); i++) CaseName.add(jsonArray.getJSONObject(i).getJSONObject("Case").getString("Title"));
+
+                ArrayList<String> Environment = new ArrayList<String>();
+                for (int i = 0;  i < jsonArray.length(); i++) Environment.add(jsonArray.getJSONObject(i).getJSONObject("Environment").getString("Title"));
 
 
 
@@ -145,7 +145,10 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
                 for (int i = 0; i < jsonArray.length(); i++)
                 {
 
-                    double seconds = jsonArray.getJSONObject(i).getDouble("TotalSeconds");
+                    //double seconds = jsonArray.getJSONObject(i).getDouble("TotalSeconds");
+                    String ElapsedTime[] = Elapsed.get(i).split(":|\\.");
+                    double seconds  = Double.parseDouble(ElapsedTime[0]) * 60 * 60 + Double.parseDouble(ElapsedTime[1]) * 60 + Double.parseDouble(ElapsedTime[2]) + Double.parseDouble("0." + ElapsedTime[3]);
+                    ElapsedTime = null;
 
                     if (Status.get(i).contains("Failed") || (Status.get(i).contains("Done") && doneStatus.contains("Failed")))
                     {
@@ -153,8 +156,6 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
                         //KeyframeInfo
                         ArrayList<String> KeyFrameTimeStamp = new ArrayList<String>();
                         for (int j = 0;  j < keyframes.length(); j++) KeyFrameTimeStamp.add(keyframes.getJSONObject(j).getString("Timestamp"));
-                        ArrayList<String> KeyFrameStatus = new ArrayList<String>();
-                        for (int j = 0;  j < keyframes.length(); j++) KeyFrameStatus.add(keyframes.getJSONObject(j).getString("Status"));
                         ArrayList<String> KeyFrameLogMessage = new ArrayList<String>();
                         for (int j = 0;  j < keyframes.length(); j++) KeyFrameLogMessage.add(keyframes.getJSONObject(j).getString("LogMessage"));
 
@@ -171,23 +172,21 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
                                 String stacktrace = String.format("%1$s - %2$s", KeyFrameTimeStamp.get(j),  KeyFrameLogMessage.get(j));
                                 listener.getLogger().println(stacktrace);
                                 fullstacktrace += stacktrace;
-                                fullstacktrace += "&#xA;";
-                                //fullstacktrace += '\n';
+                                fullstacktrace += "&#xA;"; //fullstacktrace += '\n';
                             }
                         }
+                        fullstacktrace += "Environment: " + Environment.get(i);
                         buildResult.Schedules.get(current).Cases.add(new testcase(CaseName.get(i), Status.get(i), seconds, fullstacktrace, ScheduleTitle/* + "[" + ScheduleId + "]"*/));
-                        //buildResult.Schedules.get(current).incFailed();
                         keyframes = null;
                     }
                     else
                     {
                         listener.getLogger().println(String.format("Case: %1$s | Status: %2$s | Elapsed: %3$s", CaseName.get(i), Status.get(i), Elapsed.get(i)));
                         buildResult.Schedules.get(current).Cases.add(new testcase(CaseName.get(i), Status.get(i), seconds, ScheduleTitle/* + "[" + ScheduleId + "]"*/));
-                        //buildResult.Schedules.get(current).incPassed();
                     }
                 }
 
-                if (buildResult.Schedules.get(current).Failed() != 0)
+                if (buildResult.Schedules.get(current).Failed() > 0)
                 {
                     buildResult.Schedules.get(current).Status("Failed");
                 }
@@ -199,17 +198,17 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
             }
             else
             {
-                String errorMessage = String.format("Schedule [%1$s] returns bad JSON: &#xA; %2$s", ScheduleId, str);
+                String errorMessage = String.format("Schedule [%1$s] has no cases! JSON: &#xA; %2$s", ScheduleId, str);
                 buildResult.Schedules.get(current).Error(errorMessage);
-                buildResult.Schedules.get(current).Cases.add(new testcase("Bad Json:", "Failed", 0, str, ScheduleId));
                 buildResult.Schedules.get(current).incErrors();
-                listener.error(String.format("Schedule[%1$s] returns bad JSON:\n %2$s",  ScheduleId,str));
+                listener.error(String.format("Schedule[%1$s] has no cases! JSON:\n %2$s",  ScheduleId,str));
                 InValidSchedules.put(ScheduleId,errorMessage);
             }
         }
 
         return JenkinsMessage;
     }
+
 
     private static  void GetSchTitlesOrIds(String uri, ArrayList<String> scheduleInfo, final TaskListener listener, HashMap<String, String> schedules, testsuites buildResult, HashMap<String, String> InValidSchedules)
     {
@@ -328,7 +327,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
 
     }
 
-    private static void GetScheduleState(String uri, String schId, String schTitle, int current, final TaskListener listener, MutableBoolean isRunning, String doneStatus, testsuites buildResult, HashMap<String, String> InValidSchedules)
+    private static void GetScheduleState(String uri, String schId, String schTitle, int current, final TaskListener listener, MutableBoolean isRunning,  String doneStatus, testsuites buildResult, HashMap<String, String> InValidSchedules)
     {
         try
         {
@@ -347,7 +346,8 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
             else
             {
 
-                JsonToJenkins( response.getResponseBody(), current, listener, isRunning, doneStatus, buildResult, InValidSchedules);
+
+                    JsonToJenkins( response.getResponseBody(), current, listener, isRunning,  doneStatus, buildResult, InValidSchedules);
 
             }
         }
@@ -419,8 +419,8 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
         HashMap<String,String> InValidSchedules = new HashMap<>(); // Id-Stack trace
         MutableBoolean isRunning = new MutableBoolean(false);
         MutableBoolean successfullyLaunchedSchedule =  new MutableBoolean(false);
-
-
+        testsuites buildResult = new testsuites();
+        ArrayList<String> scheduleInfo = new ArrayList<String>();
 
         String report = getReport();
 
@@ -439,11 +439,6 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
         String[] schidsArray = schIds.split("\n|, |,");//was "\n"
         String[] testsArray = schNames.split("\n|, |,");//was "\n"
 
-       // ArrayList<String> InValidSchedules = new ArrayList<String>();
-
-        testsuites buildResult = new testsuites();
-
-        ArrayList<String> scheduleInfo = new ArrayList<String>();
 
         for(int i = 0; i < schidsArray.length; i++)
         {
@@ -462,10 +457,10 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
         if(ObjectUtils.firstNonNull(delay) != null)
         {timeDelay = Integer.parseInt(delay);}
 
-
-
         try
         {
+            String APIuri = getAddress() + "/api/v1/misc/version";
+
 
             GetSchTitlesOrIds(uri, scheduleInfo, listener,schedules, buildResult, InValidSchedules); //Get schedule titles (or/and ids in case of pipeline)
             scheduleInfo = null;                                        //don't need that anymore
@@ -487,7 +482,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
                     {
 
                         Thread.sleep(timeDelay * 1000); //Time delay
-                        GetScheduleState(stateUri, schedule.getKey(), schedule.getValue(), index, listener,isRunning,getDoneStatusAs(), buildResult, InValidSchedules); //Get schedule state info
+                        GetScheduleState(stateUri, schedule.getKey(), schedule.getValue(), index, listener, isRunning,  getDoneStatusAs(), buildResult, InValidSchedules); //Get schedule state info
 
                     }
                     while (isRunning.getValue());
@@ -512,7 +507,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
                for(int i = 0; i < InValidSchedules.size();i++)
                 {
                     buildResult.Schedules.get(buildResult.Schedules.size() - 1).Cases.add(new testcase(invSch.get(i), "Failed", 0, invSchStackTrace.get(i), "INVALID SCHEDULE"));
-                    buildResult.Schedules.get(buildResult.Schedules.size()- 1).incErrors();
+                    //buildResult.Schedules.get(buildResult.Schedules.size()- 1).incErrors();
                 }
 
                 invSch = null;
@@ -598,7 +593,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
         }
 
         public String getDisplayName() {
-            return "Leaptest for Jenkins";
+            return "Leaptest Integration";
         }
 
         @Override
