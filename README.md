@@ -29,6 +29,16 @@ Leaptest is a mighty automation testing system and now it can be used for runnin
 8. Run your job and get results. Enjoy!
 
 # Screenshots
+![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-1.png)
+![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-2.png)
+![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-3.png)
+![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-4.png)
+![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-5.png)
+![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-6.png)
+![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-7.png)
+![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-8.png)
+![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-9.png)
+
 
 # Pipeline
 This is an example script for pipeline:
