@@ -45,7 +45,7 @@
     </dependencies>
     <properties>
         <!-- Baseline Jenkins version you use to build the plugin. Users must have this version or newer to run. -->
-        <jenkins.version>1.625.3</jenkins.version>
+        <jenkins.version>1.635</jenkins.version>
         <!-- Java Level to use. Java 7 required when using core >= 1.612 -->
         <java.level>7</java.level>
         <!-- Jenkins Test Harness version you use to test the plugin. -->
@@ -82,7 +82,7 @@
 
     <scm>
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}.git</connection>
-        <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}git</developerConnection>
+        <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}.git</developerConnection>
         <url>http://github.com/jenkinsci/${project.artifactId}</url>
     </scm>
 

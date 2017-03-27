@@ -1,5 +1,5 @@
 # leaptest-plugin
-This is Leaptest plugin for Jenkins
+This is Leaptest plugin for Jenkins (version 1.635 or later)
 
 # More Details
 Leaptest is a mighty automation testing system and now it can be used for running [smoke, functional, acceptance] tests, generating reports and a lot more in Jenkins. You can easily configure integration directly in Jenkins enjoying UI friendly configuration page with easy connection and test suites selection. 
