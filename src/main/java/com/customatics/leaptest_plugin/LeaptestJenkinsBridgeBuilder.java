@@ -134,7 +134,17 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
 
 
                 ArrayList<String> CaseName = new ArrayList<String>();
-                for (int i = 0;  i < jsonArray.length(); i++) CaseName.add(jsonArray.getJSONObject(i).getJSONObject("Case").getString("Title"));
+                for (int i = 0;  i < jsonArray.length(); i++)
+                {
+                    String caseTitle = jsonArray.getJSONObject(i).getJSONObject("Case").optString("Title","null");
+                    if(caseTitle.contains("null"))
+                    {
+                        CaseName.add(CaseName.get(CaseName.size() - 1));
+                    }
+                    else {
+                        CaseName.add(caseTitle);
+                    }
+                }
 
                 ArrayList<String> Environment = new ArrayList<String>();
                 for (int i = 0;  i < jsonArray.length(); i++) Environment.add(jsonArray.getJSONObject(i).getJSONObject("Environment").getString("Title"));
@@ -176,6 +186,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
                             }
                         }
                         fullstacktrace += "Environment: " + Environment.get(i);
+                        listener.getLogger().println("Environment: " + Environment.get(i));
                         buildResult.Schedules.get(current).Cases.add(new testcase(CaseName.get(i), Status.get(i), seconds, fullstacktrace, ScheduleTitle/* + "[" + ScheduleId + "]"*/));
                         keyframes = null;
                     }
