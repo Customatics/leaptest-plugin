@@ -5,26 +5,28 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "failure")
-public class failure
+public class Failure
 {
-    @XmlAttribute(name = "message")
+
     private String message;
-    @XmlAttribute(name = "type")
+
     private String type;
 
-    public failure() { }
-    public failure(String stacktrace)
+    public Failure() { }
+
+    public Failure(String stacktrace)
     {
         message = stacktrace;
         type = " ";
     }
 
+    @XmlAttribute(name = "message")
+    public String getMessage()              { return message; }
+    public void   setMessage(String message){ this.message = message; }
 
-    public void Message (String message){ this.message = message; }
-    public String Message() { return message; }
+    @XmlAttribute(name = "type")
+    public String getType()                 { return type; }
+    public void setType(String type)        { this.type = type;}
 
-
-    public void Type (String type){ this.type = type;}
-    public String Type (){return type; }
 
 }

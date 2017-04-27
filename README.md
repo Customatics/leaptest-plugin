@@ -14,8 +14,8 @@ Leaptest is a mighty automation testing system and now it can be used for runnin
  - Smart UI
  
 # Installing
-- Use maven 3.3.9.
-- Command: mvn package -DskipTests
+- Use maven 
+- Command: mvn package 
 - Or simply install hpi-file from the "target" folder: Manage Jenkins -> Manage Plugins -> Advanced -> Upload Plugin -> Choose that hpi-file -> Press Upload
 
 # Instruction
