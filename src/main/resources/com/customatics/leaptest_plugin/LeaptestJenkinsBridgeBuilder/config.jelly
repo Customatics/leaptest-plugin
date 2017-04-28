@@ -10,12 +10,13 @@
     Creates a text field that shows the value of the "name" property.
     When submitted, it will be passed to the corresponding constructor parameter.
   -->
-
+    <!--
     <f:entry title="Plugin Version:"  field="version">
     <select name="version">
         <option value="1.1.0">1.1.0</option>
     </select>
     </f:entry>
+     -->
   <f:entry title="Server Address:" field="address">
     <f:textbox name="address"/>
   </f:entry>
@@ -42,7 +43,7 @@
    </f:entry>
     <f:advanced>
         <f:entry title="Delay (seconds):" field="delay">
-            <f:textbox name="delay" value="5"/>
+            <f:textbox name="delay" />
         </f:entry>
         <f:entry title="Done Status:"  field="doneStatusAs" >
             <select name="doneStatusAs">
@@ -50,12 +51,11 @@
                 <option value="Success">Success</option>
             </select>
         </f:entry>
+        <f:entry title="External workspace path (optional)" field="externalWorkspacePath">
+                <f:textbox name="externalWorkspacePath" />
+        </f:entry>
     </f:advanced>
-    <!--
-    <f:entry>
-    <f:validateButton title="Get Schedules" progress="${%Testing...}" method="testConnection" with="address"/>
-    </f:entry>
-    -->
+
 
 <script type="text/javascript" language="JavaScript">
 var script = document.createElement('script');

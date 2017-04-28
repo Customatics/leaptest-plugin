@@ -15,7 +15,9 @@ import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONObject;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.json.JSONArray;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -32,41 +34,43 @@ import java.util.concurrent.ExecutionException;
 
 public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuildStep {
 
-    private final String version;
+    //private final String version;
     private final String address;
     private final String delay;
     private final String doneStatusAs;
     private final String report;
     private final String schIds;
     private final String schNames;
+    private final String externalWorkspacePath;
 
 
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public LeaptestJenkinsBridgeBuilder(String version, String address, String delay, String doneStatusAs, String report, String schNames, String schIds )
+    public LeaptestJenkinsBridgeBuilder(/*String version,*/ String address, String delay, String doneStatusAs, String report, String schNames, String schIds, String externalWorkspacePath )
     {
-        this.version = version;
+        //this.version = version;
         this.address = address;
         this.delay = delay;
         this.doneStatusAs = doneStatusAs;
         this.report = report;
         this.schIds = schIds;
         this.schNames = schNames;
+        this.externalWorkspacePath = externalWorkspacePath;
 
     }
 
-
+    //public String getVersion(){return version;}
     public String getDelay() {
         return delay;
     }
     public String getAddress() {return address;}
     public String getSchNames(){return schNames;}
     public String getSchIds(){return schIds;}
-    public String getVersion(){return version;}
     public String getDoneStatusAs(){return doneStatusAs;}
     public String getReport(){return  report;}
+    public String getExternalWorkspacePath(){return externalWorkspacePath;}
 
-    private static String JsonToJenkins(String str, int current, final TaskListener listener, MutableBoolean isRunning, String doneStatus, ScheduleCollection buildResult, HashMap<String, String> InValidSchedules)
+    private static String JsonToJenkins(String str, int current, final TaskListener listener, MutableBoolean scheduleIsStillRunning, String doneStatus, ScheduleCollection buildResult, HashMap<String, String> InValidSchedules)
     {
 
         String JenkinsMessage = "";
@@ -79,11 +83,11 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
 
         if (json.optString("Status").equals("Running"))
         {
-            isRunning.setValue(true);
+            scheduleIsStillRunning.setValue(true);
         }
         else
         {
-            isRunning.setValue(false);
+            scheduleIsStillRunning.setValue(false);
 
 
             /////////Schedule Info
@@ -101,17 +105,17 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
 
                 int PassedCount = 0;
                 int FailedCount = 0;
-                temp = json.getJSONObject("LastRun").optInt("FailedCount",0);
-                if (!temp.equals(null)) {FailedCount = temp.intValue();}
-                temp = json.getJSONObject("LastRun").optInt("PassedCount",0);
-                if (!temp.equals(null)) {PassedCount = temp.intValue();}
-                buildResult.Schedules.get(current).setPassed(PassedCount);
-                buildResult.Schedules.get(current).setFailed(FailedCount);
-
                 int DoneCount = 0;
+
+                temp = json.getJSONObject("LastRun").optInt("FailedCount",0);
+                if (temp > 0) {FailedCount = temp.intValue();}
+                temp = json.getJSONObject("LastRun").optInt("PassedCount",0);
+                if (temp > 0) {PassedCount = temp.intValue();}
                 temp = json.getJSONObject("LastRun").optInt("DoneCount",0);
                 if (temp > 0) {DoneCount = temp.intValue();}
 
+                buildResult.Schedules.get(current).setPassed(PassedCount);
+                buildResult.Schedules.get(current).setFailed(FailedCount);
 
                 if (doneStatus.contains("Failed"))
                 {
@@ -428,7 +432,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
         EnvVars env = build.getEnvironment(listener);
         HashMap<String, String> schedules = new HashMap<String, String>(); // Id-Title
         HashMap<String,String> InValidSchedules = new HashMap<>(); // Id-Stack trace
-        MutableBoolean isRunning = new MutableBoolean(false);
+        MutableBoolean scheduleIsStillRunning = new MutableBoolean(false);
         MutableBoolean successfullyLaunchedSchedule =  new MutableBoolean(false);
         ScheduleCollection buildResult = new ScheduleCollection();
         ArrayList<String> scheduleInfo = new ArrayList<String>();
@@ -445,10 +449,21 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
             report+=".xml";
         }
 
-        String junitReportPath =  new File( System.getenv("JENKINS_HOME")+"\\workspace\\" +workspace.getName() + "\\" + report).getPath();
+        String junitReportPath = null;
+        if (StringUtils.isNotEmpty(getExternalWorkspacePath()) || !"".equals(getExternalWorkspacePath()))
+        {
+            junitReportPath = new File( String.format("%1$s\\%2$s\\%3$s",  getExternalWorkspacePath(), workspace.getName(),report)).getPath();
+        }
+        else
+        {
+            junitReportPath = new File( String.format("%1$s\\workspace\\%2$s\\%3$s",  System.getenv("JENKINS_HOME"),workspace.getName(),report)).getPath();
+        }
 
-        String[] schidsArray = schIds.split("\n|, |,");//was "\n"
-        String[] testsArray = schNames.split("\n|, |,");//was "\n"
+        listener.getLogger().println(junitReportPath);
+
+
+        String[] schidsArray = getSchIds().split("\n|, |,");//was "\n"
+        String[] testsArray = getSchNames().split("\n|, |,");//was "\n"
 
 
         for(int i = 0; i < schidsArray.length; i++)
@@ -465,8 +480,8 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
 
         String uri = getAddress() + "/api/v1/runSchedules";
         int timeDelay = 1;
-        if(ObjectUtils.firstNonNull(delay) != null)
-        {timeDelay = Integer.parseInt(delay);}
+        if(ObjectUtils.firstNonNull(getDelay()) != null)
+        {timeDelay = Integer.parseInt(getDelay());}
 
         try
         {
@@ -493,10 +508,10 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
                     {
 
                         Thread.sleep(timeDelay * 1000); //Time delay
-                        GetScheduleState(stateUri, schedule.getKey(), schedule.getValue(), index, listener, isRunning,  getDoneStatusAs(), buildResult, InValidSchedules); //Get schedule state info
+                        GetScheduleState(stateUri, schedule.getKey(), schedule.getValue(), index, listener, scheduleIsStillRunning,  getDoneStatusAs(), buildResult, InValidSchedules); //Get schedule state info
 
                     }
-                    while (isRunning.getValue());
+                    while (scheduleIsStillRunning.getValue());
                 }
 
                 index++;
@@ -586,12 +601,12 @@ public class LeaptestJenkinsBridgeBuilder extends Builder implements SimpleBuild
 
         public DescriptorImpl() { load();}
 
-
+        /*
         public ListBoxModel doFillSelectionVersion(@QueryParameter String version) {
             return new ListBoxModel(new ListBoxModel.Option("1.1.0", "1.1.0", version.matches("1.1.0") ),
                     new ListBoxModel.Option("1.1.0", "1.1.0", version.matches("1.1.0") ));
 
-        }
+        }*/
         public ListBoxModel doFillSelectionStatus(@QueryParameter String status) {
             return new ListBoxModel(new ListBoxModel.Option("Success", "Success", status.matches("Success") ),
                     new ListBoxModel.Option("Success", "Success", status.matches("Success") ),
