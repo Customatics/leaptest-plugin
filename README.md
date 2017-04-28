@@ -20,13 +20,14 @@ Leaptest is a mighty automation testing system and now it can be used for runnin
 
 # Instruction
 1. Add Build "Leaptest for Jenkins" to your job.
-2. Enter your Leaptest server address something like "http://win10-agent2:9000" or "http://localhost:9000".
+2. Enter your Leaptest server address something like "http://win10-agent20:9000" or "http://localhost:9000".
 3. Enter JUnit report file name. This file will be created at your job's working directory. If there is an xml file with the same name, it will be overwritten. By default it is "report.xml".
 4. Enter time delay in seconds. When schedule is run, plugin will wait this time before trying to get schedule state. If schedule is still running, plugin will wait this time again. By default this value is 1 second.
 5. Select how plugin should set "Done" status value: to Success or Failed.
 6. Press button "Select Schedules" to get a list of all available schedules grouped by projects. Select schedules you want to run.
-7. Add Post-Build "Publish JUnit test result report" to your job. Enter JUnit report file name. It MUST be the same you've entered before!
-8. Run your job and get results. Enjoy!
+7. If your workspace folder path is not default (JENKINS_HOME\workspace),enter your full path here like {Your path to workspace folder}\workspace. Otherwise DO NOT enter anything!
+8. Add Post-Build "Publish JUnit test result report" to your job. Enter JUnit report file name. It MUST be the same you've entered before!
+9. Run your job and get results. Enjoy!
 
 # Screenshots
 ![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-1.png)
