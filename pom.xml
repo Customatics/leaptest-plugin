@@ -11,7 +11,7 @@
     </parent>
     <groupId>com.customatics</groupId>
     <artifactId>leaptest-plugin</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <packaging>hpi</packaging>
     <dependencies>
         <dependency>
@@ -29,9 +29,6 @@
             <artifactId>json</artifactId>
             <version>20160810</version>
         </dependency>
-
-
-
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>jquery</artifactId>
@@ -43,6 +40,7 @@
             <version>1.0</version>
         </dependency>
     </dependencies>
+
     <properties>
 
         <!-- Baseline Jenkins version you use to build the plugin. Users must have this version or newer to run. -->
@@ -56,10 +54,7 @@
              ~ hpi-plugin.version: The HPI Maven Plugin version used by the plugin..
              ~ stapler-plugin.version: The Stapler Maven plugin version required by the plugin.
         -->
-
-
     </properties>
-
 
     <name>Leaptest Integration</name>
     <description>Integrates Leaptest codeless test automation with Jenkins. Run tests, get results, generate reports.</description>
@@ -74,7 +69,6 @@
         </license>
     </licenses>
 
-
     <developers>
         <developer>
             <id>customatics</id>
@@ -82,7 +76,6 @@
             <email>info@customatics.com</email>
         </developer>
     </developers>
-
 
     <scm>
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}.git</connection>
@@ -102,6 +95,4 @@
             <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
-
-
 </project>

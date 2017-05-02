@@ -51,9 +51,6 @@
                 <option value="Success">Success</option>
             </select>
         </f:entry>
-        <f:entry title="External workspace path (optional)" field="externalWorkspacePath">
-                <f:textbox name="externalWorkspacePath" />
-        </f:entry>
     </f:advanced>
 
 
