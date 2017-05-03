@@ -53,7 +53,6 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         this.report = report;
         this.schIds = schIds;
         this.schNames = schNames;
-
     }
 
     //public String getVersion(){return version;}
@@ -78,7 +77,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         String ScheduleId = json.getString("ScheduleId");
 
 
-        if (json.optString("Status").equals("Running"))
+        if (json.optString("Status").equals("Running") || json.optString("Status").equals("Queued"))
         {
             scheduleIsStillRunning.setValue(true);
         }
@@ -226,15 +225,12 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         try
         {
 
-
             AsyncHttpClient client = new AsyncHttpClient();
             Response response = client.prepareGet(uri).execute().get();
 
             client = null;
 
             JSONArray jsonArray =  new JSONArray(response.getResponseBody()); response = null;
-
-
 
             for (int i = 0; i < scheduleInfo.size(); i++)
             {
@@ -294,11 +290,8 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
             Response response = client.preparePut(uri).setBody("").execute().get();
             client = null;
 
-
-
             if (response.getStatusCode() != 204)          // 204 Response means correct schedule launching
             {
-
 
                 String errormessage = String.format(MESSAGES.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
                 listener.error(errormessage);
@@ -307,7 +300,6 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
             }
             else
             {
-
                 successfullyLaunchedSchedule.setValue(true);
                 String successmessage = String.format(MESSAGES.SCHEDULE_RUN_SUCCESS, schTitle, schId);
                 buildResult.Schedules.get(current).setId(current);
@@ -355,10 +347,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
             }
             else
             {
-
-
-                    JsonToJenkins( response.getResponseBody(), current, listener, isRunning,  doneStatus, buildResult, InValidSchedules);
-
+                JsonToJenkins( response.getResponseBody(), current, listener, isRunning,  doneStatus, buildResult, InValidSchedules);
             }
         }
         catch (InterruptedException e) {
@@ -384,7 +373,6 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
     {
         try
         {
-
             File reportFile = new File(reportPath);
             if(!reportFile.exists()) reportFile.createNewFile();
 
@@ -433,7 +421,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
 
         String report = getReport();
 
-        if(report.isEmpty())
+        if(report.isEmpty() || "".equals(report))
         {
             report = "report.xml";
         }
@@ -449,7 +437,6 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         String[] schidsArray = getSchIds().split("\n|, |,");//was "\n"
         String[] testsArray = getSchNames().split("\n|, |,");//was "\n"
 
-
         for(int i = 0; i < schidsArray.length; i++)
         {
             scheduleInfo.add(schidsArray[i]);
@@ -461,10 +448,9 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         schidsArray = null;
         testsArray = null;
 
-
         String uri = String.format(MESSAGES.GET_ALL_AVAILABLE_SCHEDULES_URI, getAddress());
         int timeDelay = 1;
-        if(ObjectUtils.firstNonNull(getDelay()) != null)
+        if(!getDelay().isEmpty() || !"".equals(getDelay()))
         {timeDelay = Integer.parseInt(getDelay());}
 
         try
@@ -559,7 +545,6 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
             build.setResult(Result.FAILURE);
         }
 
-
         return;
     }
 
@@ -572,12 +557,8 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
     }
 
 
-
-
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-
-
 
         public DescriptorImpl() { load();}
 
@@ -607,7 +588,6 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
             save();
             return super.configure(req,formData);
         }
-
 
     }
 
