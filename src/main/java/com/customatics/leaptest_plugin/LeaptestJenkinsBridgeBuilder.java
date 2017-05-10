@@ -66,7 +66,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
     public String getReport(){return  report;}
 
 
-    private static String JsonToJenkins(String str, int current, final TaskListener listener, MutableBoolean scheduleIsStillRunning, String doneStatus, ScheduleCollection buildResult, HashMap<String, String> InValidSchedules)
+    private static String JsonToJenkins(String str, int current, final TaskListener listener, MutableBoolean isScheduleStillRunning, String doneStatus, ScheduleCollection buildResult, HashMap<String, String> InValidSchedules)
     {
 
         String JenkinsMessage = "";
@@ -79,11 +79,11 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
 
         if (json.optString("Status").equals("Running") || json.optString("Status").equals("Queued"))
         {
-            scheduleIsStillRunning.setValue(true);
+            isScheduleStillRunning.setValue(true);
         }
         else
         {
-            scheduleIsStillRunning.setValue(false);
+            isScheduleStillRunning.setValue(false);
 
 
             /////////Schedule Info
@@ -282,7 +282,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         }
     }
 
-    private static void RunSchedule(String uri, String schId, String schTitle, int current, final TaskListener listener, MutableBoolean successfullyLaunchedSchedule, ScheduleCollection buildResult, HashMap<String, String> InValidSchedules)
+    private static void RunSchedule(String uri, String schId, String schTitle, int current, final TaskListener listener, MutableBoolean isSuccessfullyLaunchedSchedule, ScheduleCollection buildResult, HashMap<String, String> InValidSchedules)
     {
         try
         {
@@ -300,7 +300,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
             }
             else
             {
-                successfullyLaunchedSchedule.setValue(true);
+                isSuccessfullyLaunchedSchedule.setValue(true);
                 String successmessage = String.format(MESSAGES.SCHEDULE_RUN_SUCCESS, schTitle, schId);
                 buildResult.Schedules.get(current).setId(current);
                 listener.getLogger().println(successmessage);
@@ -324,12 +324,12 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
             buildResult.Schedules.get(current).setError(errormessage);
             buildResult.Schedules.get(current).incErrors();
             InValidSchedules.put(schId,buildResult.Schedules.get(current).getError());
-            successfullyLaunchedSchedule.setValue(false);
+            isSuccessfullyLaunchedSchedule.setValue(false);
         }
 
     }
 
-    private static void GetScheduleState(String uri, String schId, String schTitle, int current, final TaskListener listener, MutableBoolean isRunning, String doneStatus, ScheduleCollection buildResult, HashMap<String, String> InValidSchedules)
+    private static void GetScheduleState(String uri, String schId, String schTitle, int current, final TaskListener listener, MutableBoolean isScheduleStillRunning, String doneStatus, ScheduleCollection buildResult, HashMap<String, String> InValidSchedules)
     {
         try
         {
@@ -347,7 +347,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
             }
             else
             {
-                JsonToJenkins( response.getResponseBody(), current, listener, isRunning,  doneStatus, buildResult, InValidSchedules);
+                JsonToJenkins( response.getResponseBody(), current, listener, isScheduleStillRunning,  doneStatus, buildResult, InValidSchedules);
             }
         }
         catch (InterruptedException e) {
@@ -366,6 +366,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
             buildResult.Schedules.get(current).incErrors();
             listener.error(errorMessage);
             InValidSchedules.put(schId,buildResult.Schedules.get(current).getError());
+            isScheduleStillRunning.setValue(false);
         }
     }
 
@@ -414,8 +415,8 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         EnvVars env = build.getEnvironment(listener);
         HashMap<String, String> schedules = new HashMap<String, String>(); // Id-Title
         HashMap<String,String> InValidSchedules = new HashMap<>(); // Id-Stack trace
-        MutableBoolean scheduleIsStillRunning = new MutableBoolean(false);
-        MutableBoolean successfullyLaunchedSchedule =  new MutableBoolean(false);
+        MutableBoolean isScheduleStillRunning = new MutableBoolean(false);
+        MutableBoolean isSuccessfullyLaunchedSchedule =  new MutableBoolean(false);
         ScheduleCollection buildResult = new ScheduleCollection();
         ArrayList<String> scheduleInfo = new ArrayList<String>();
 
@@ -449,7 +450,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         testsArray = null;
 
         String uri = String.format(MESSAGES.GET_ALL_AVAILABLE_SCHEDULES_URI, getAddress());
-        int timeDelay = 1;
+        int timeDelay = 3;
         if(!getDelay().isEmpty() || !"".equals(getDelay()))
         {timeDelay = Integer.parseInt(getDelay());}
 
@@ -467,16 +468,16 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
                 String runUri = String.format(MESSAGES.RUN_SCHEDULE_URI, uri, schedule.getKey());
                 String stateUri = String.format(MESSAGES.GET_SCHEDULE_STATE_URI, uri, schedule.getKey());
 
-                RunSchedule(runUri, schedule.getKey(), schedule.getValue(), index, listener,successfullyLaunchedSchedule, buildResult, InValidSchedules); // Run schedule. In case of unsuccessfull run throws exception
+                RunSchedule(runUri, schedule.getKey(), schedule.getValue(), index, listener,isSuccessfullyLaunchedSchedule, buildResult, InValidSchedules); // Run schedule. In case of unsuccessfull run throws exception
 
-                if (successfullyLaunchedSchedule.getValue()) // if schedule was successfully run
+                if (isSuccessfullyLaunchedSchedule.getValue()) // if schedule was successfully run
                 {
                     do
                     {
                         Thread.sleep(timeDelay * 1000); //Time delay
-                        GetScheduleState(stateUri, schedule.getKey(), schedule.getValue(), index, listener, scheduleIsStillRunning,  getDoneStatusAs(), buildResult, InValidSchedules); //Get schedule state info
+                        GetScheduleState(stateUri, schedule.getKey(), schedule.getValue(), index, listener, isScheduleStillRunning,  getDoneStatusAs(), buildResult, InValidSchedules); //Get schedule state info
                     }
-                    while (scheduleIsStillRunning.getValue());
+                    while (isScheduleStillRunning.getValue());
                 }
 
                 index++;

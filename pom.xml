@@ -9,9 +9,9 @@
         <version>2.11</version>
         <relativePath/>
     </parent>
-    <groupId>com.customatics</groupId>
+  <!--  <groupId>com.customatics</groupId> -->
     <artifactId>leaptest-plugin</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
     <packaging>hpi</packaging>
     <dependencies>
         <dependency>
