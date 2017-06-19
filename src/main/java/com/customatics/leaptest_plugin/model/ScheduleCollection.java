@@ -1,4 +1,4 @@
-package com.customatics.leaptest_plugin;
+package com.customatics.leaptest_plugin.model;
 
 import javax.xml.bind.annotation.*;
 import java.util.ArrayList;
@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 @XmlRootElement(name = "testsuites")
 @XmlAccessorType(XmlAccessType.NONE)
-public class ScheduleCollection
+public final class ScheduleCollection
 {
 
     public int totalTests = 0;

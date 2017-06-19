@@ -1,11 +1,11 @@
-package com.customatics.leaptest_plugin;
+package com.customatics.leaptest_plugin.model;
 
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "failure")
-public class Failure
+public final class Failure
 {
 
     private String message;

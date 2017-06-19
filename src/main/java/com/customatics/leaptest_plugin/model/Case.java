@@ -1,4 +1,4 @@
-package com.customatics.leaptest_plugin;
+package com.customatics.leaptest_plugin.model;
 
 
 import javax.xml.bind.annotation.XmlAttribute;
@@ -6,7 +6,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "testcase")
-public class Case
+public final class Case
 {
 
     private String caseName;
