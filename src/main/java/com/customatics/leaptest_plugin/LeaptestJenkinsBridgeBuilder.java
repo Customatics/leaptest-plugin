@@ -147,6 +147,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         {
             listener.error(Messages.PLUGIN_ERROR_FINISH);
             listener.error(e.getMessage());
+            listener.error(Messages.PLEASE_CONTACT_SUPPORT);
             build.setResult(Result.FAILURE);
         }
 

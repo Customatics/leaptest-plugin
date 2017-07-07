@@ -98,48 +98,55 @@ public final class PluginHandler {
             Response response = client.prepareGet(scheduleListUri).execute().get();
             client = null;
 
-            if (response.getStatusCode() != 200) {
-                String errormessage = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
-                listener.error(errormessage);
-                throw new Exception(errormessage);
-                //TODO: if 400, if 500 and so on
-            } else {
-                JsonParser parser = new JsonParser();
-                JsonArray jsonScheduleList = parser.parse(response.getResponseBody()).getAsJsonArray();
 
+            switch (response.getStatusCode())
+            {
+                case 200:
+                    JsonParser parser = new JsonParser();
+                    JsonArray jsonScheduleList = parser.parse(response.getResponseBody()).getAsJsonArray();
 
-                for (String rawSchedule : rawScheduleList) {
-                    boolean successfullyMapped = false;
-                    for (JsonElement jsonScheduleElement : jsonScheduleList) {
-                        JsonObject jsonSchedule = jsonScheduleElement.getAsJsonObject();
+                    for (String rawSchedule : rawScheduleList) {
+                        boolean successfullyMapped = false;
+                        for (JsonElement jsonScheduleElement : jsonScheduleList) {
+                            JsonObject jsonSchedule = jsonScheduleElement.getAsJsonObject();
 
-                        String Id = Utils.defaultStringIfNull(jsonSchedule.get("Id"), "null Id");
-                        String Title = Utils.defaultStringIfNull(jsonSchedule.get("Title"), "null Title");
-                        //TODO check if schedules can be without titles
+                            String Id = Utils.defaultStringIfNull(jsonSchedule.get("Id"), "null Id");
+                            String Title = Utils.defaultStringIfNull(jsonSchedule.get("Title"), "null Title");
 
-                        if (Id.contentEquals(rawSchedule)) {
-                            if (!schedulesIdTitleHashMap.containsValue(Title)) {
-                                schedulesIdTitleHashMap.put(rawSchedule, Title);
-                                buildResult.Schedules.add(new Schedule(rawSchedule, Title));
-                                listener.getLogger().println(String.format(Messages.SCHEDULE_DETECTED, Title, rawSchedule));
+                            if (Id.contentEquals(rawSchedule)) {
+                                if (!schedulesIdTitleHashMap.containsValue(Title)) {
+                                    schedulesIdTitleHashMap.put(rawSchedule, Title);
+                                    buildResult.Schedules.add(new Schedule(rawSchedule, Title));
+                                    listener.getLogger().println(String.format(Messages.SCHEDULE_DETECTED, Title, rawSchedule));
+                                }
+                                successfullyMapped = true;
                             }
-                            successfullyMapped = true;
+
+                            if (Title.contentEquals(rawSchedule)) {
+                                if (!schedulesIdTitleHashMap.containsKey(Id)) {
+                                    schedulesIdTitleHashMap.put(Id, rawSchedule);
+                                    buildResult.Schedules.add(new Schedule(Id, rawSchedule));
+                                    listener.getLogger().println(String.format(Messages.SCHEDULE_DETECTED, rawSchedule, Title));
+                                }
+                                successfullyMapped = true;
+                            }
                         }
 
-                        if (Title.contentEquals(rawSchedule)) {
-                            if (!schedulesIdTitleHashMap.containsKey(Id)) {
-                                schedulesIdTitleHashMap.put(Id, rawSchedule);
-                                buildResult.Schedules.add(new Schedule(Id, rawSchedule));
-                                listener.getLogger().println(String.format(Messages.SCHEDULE_DETECTED, rawSchedule, Title));
-                            }
-                            successfullyMapped = true;
-                        }
+                        if (!successfullyMapped)
+                            invalidSchedules.add(new InvalidSchedule(rawSchedule, Messages.NO_SUCH_SCHEDULE));
                     }
+                break;
 
-                    if (!successfullyMapped)
-                        invalidSchedules.add(new InvalidSchedule(rawSchedule, Messages.NO_SUCH_SCHEDULE));
-                }
+                case 500:
+                    String errorMessage500 = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
+                    errorMessage500 += String.format("\n%1$s",Messages.CONTROLLER_RESPONDED_WITH_ERRORS);
+                    throw new Exception(errorMessage500);
+
+                default:
+                    String errorMessage = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
+                    throw new Exception(errorMessage);
             }
+
         } catch (ConnectException e){
             listener.error( e.getMessage());
         } catch (InterruptedException e) {
@@ -151,6 +158,7 @@ public final class PluginHandler {
         } catch (Exception e) {
             listener.error(Messages.SCHEDULE_TITLE_OR_ID_ARE_NOT_GOT);
             listener.error(e.getMessage());
+            listener.error(Messages.PLEASE_CONTACT_SUPPORT);
         } finally {
             return schedulesIdTitleHashMap;
         }
@@ -175,21 +183,34 @@ public final class PluginHandler {
             Response response = client.preparePut(uri).setBody("").execute().get();
             client = null;
 
-            if (response.getStatusCode() != 204)          // 204 Response means correct schedule launching
+            switch (response.getStatusCode())
             {
-                String errormessage = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
-                listener.error(errormessage);
-                buildResult.Schedules.get(currentScheduleIndex).setError(errormessage);
-                throw new Exception();
-            }
+                case 204:
+                    isSuccessfullyRun = true;
+                    String successMessage = String.format(Messages.SCHEDULE_RUN_SUCCESS, schedule.getValue(), schedule.getKey());
+                    buildResult.Schedules.get(currentScheduleIndex).setId(currentScheduleIndex);
+                    listener.getLogger().println(Messages.SCHEDULE_CONSOLE_LOG_SEPARATOR);
+                    listener.getLogger().println(successMessage);
+                break;
 
-            else
-            {
-                isSuccessfullyRun = true;
-                String successmessage = String.format(Messages.SCHEDULE_RUN_SUCCESS, schedule.getValue(), schedule.getKey());
-                buildResult.Schedules.get(currentScheduleIndex).setId(currentScheduleIndex);
-                listener.getLogger().println(Messages.SCHEDULE_CONSOLE_LOG_SEPARATOR);
-                listener.getLogger().println(successmessage);
+                case 404:
+                    String errorMessage404 = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
+                    errorMessage404 += String.format("\n%1$s",String.format(Messages.NO_SUCH_SCHEDULE_WAS_FOUND, schedule.getValue(), schedule.getKey()));
+                    throw new Exception(errorMessage404);
+
+                case 444:
+                    String errorMessage444 = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
+                    errorMessage444 += String.format("\n%1$s",String.format(Messages.SCHEDULE_HAS_NO_CASES,schedule.getValue(), schedule.getKey()));
+                    throw new Exception(errorMessage444);
+
+                case 500:
+                    String errorMessage500 = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
+                    errorMessage500 += String.format("\n%1$s",String.format(Messages.SCHEDULE_IS_RUNNING_NOW, schedule.getValue(), schedule.getKey()));
+                    throw new Exception(errorMessage500);
+
+                default:
+                    String errorMessage = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
+                    throw new Exception(errorMessage);
             }
 
         } catch (InterruptedException e) {
@@ -203,13 +224,13 @@ public final class PluginHandler {
             listener.error(e.getMessage());
         }
         catch (Exception e){
-            String errormessage = String.format(Messages.SCHEDULE_RUN_FAILURE,  schedule.getValue(), schedule.getKey());
-            listener.error(errormessage);
+            String errorMessage = String.format(Messages.SCHEDULE_RUN_FAILURE,  schedule.getValue(), schedule.getKey());
+            listener.error(errorMessage);
             listener.error(e.getMessage());
-            buildResult.Schedules.get(currentScheduleIndex).setError(errormessage);
+            listener.error(Messages.PLEASE_CONTACT_SUPPORT);
+            buildResult.Schedules.get(currentScheduleIndex).setError(String.format("%1$s\n%2$s",errorMessage,e.getMessage()));
             buildResult.Schedules.get(currentScheduleIndex).incErrors();
             invalidSchedules.add(new InvalidSchedule(String.format(Messages.SCHEDULE_FORMAT,schedule.getValue(),schedule.getKey()),buildResult.Schedules.get(currentScheduleIndex).getError()));
-
         }
         finally {
             return isSuccessfullyRun;
@@ -236,133 +257,141 @@ public final class PluginHandler {
             Response response = client.prepareGet(uri).execute().get();
             client = null;
 
-            if (response.getStatusCode() != 200) {
-                String errormessage = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
-                listener.error(errormessage);
-                buildResult.Schedules.get(currentScheduleIndex).setError(errormessage);
-                throw new Exception();
-            } else {
+            switch (response.getStatusCode())
+            {
+                case 200:
 
-                JsonParser parser = new JsonParser();
-                JsonObject jsonState = parser.parse(response.getResponseBody()).getAsJsonObject();
-                parser = null;
+                    JsonParser parser = new JsonParser();
+                    JsonObject jsonState = parser.parse(response.getResponseBody()).getAsJsonObject();
+                    parser = null;
 
-                String ScheduleId = jsonState.get("ScheduleId").getAsString();
+                    String ScheduleId = jsonState.get("ScheduleId").getAsString();
 
-                if (isScheduleStillRunning(jsonState))
-                    isScheduleStillRunning = true;
-                else {
-                    isScheduleStillRunning = false;
+                    if (isScheduleStillRunning(jsonState))
+                        isScheduleStillRunning = true;
+                    else
+                    {
+                            isScheduleStillRunning = false;
 
-                    /////////Schedule Info
-                    JsonElement jsonLastRun = jsonState.get("LastRun");
+                        /////////Schedule Info
+                            JsonElement jsonLastRun = jsonState.get("LastRun");
 
-                    if (jsonLastRun != null) {
-                        JsonObject lastRun = jsonLastRun.getAsJsonObject();
+                            JsonObject lastRun = jsonLastRun.getAsJsonObject();
 
-                        String ScheduleTitle = lastRun.get("ScheduleTitle").getAsString();
+                            String ScheduleTitle = lastRun.get("ScheduleTitle").getAsString();
 
-                        buildResult.Schedules.get(currentScheduleIndex).setTime(parseExecutionTimeToSeconds(lastRun.get("ExecutionTotalTime")));
+                            buildResult.Schedules.get(currentScheduleIndex).setTime(parseExecutionTimeToSeconds(lastRun.get("ExecutionTotalTime")));
 
-                        int passedCount = caseStatusCount("PassedCount", lastRun);
-                        int failedCount = caseStatusCount("FailedCount", lastRun);
-                        int doneCount = caseStatusCount("DoneCount", lastRun);
+                            int passedCount = caseStatusCount("PassedCount", lastRun);
+                            int failedCount = caseStatusCount("FailedCount", lastRun);
+                            int doneCount = caseStatusCount("DoneCount", lastRun);
 
-                        buildResult.Schedules.get(currentScheduleIndex).setPassed(passedCount);
-                        buildResult.Schedules.get(currentScheduleIndex).setFailed(failedCount);
-
-                        if (doneStatusValue.contentEquals("Failed"))
-                            buildResult.Schedules.get(currentScheduleIndex).addFailed(doneCount);
-                        else
-                            buildResult.Schedules.get(currentScheduleIndex).addPassed(doneCount);
-
-
-                        ///////////AutomationRunItemsInfo
-                        JsonArray jsonAutomationRunItems = lastRun.get("AutomationRunItems").getAsJsonArray();
-
-                        ArrayList<String> automationRunId = new ArrayList<String>();
-                        for (JsonElement jsonAutomationRunItem : jsonAutomationRunItems)
-                            automationRunId.add(jsonAutomationRunItem.getAsJsonObject().get("AutomationRunId").getAsString());
-                        ArrayList<String> statuses = new ArrayList<String>();
-                        for (JsonElement jsonAutomationRunItem : jsonAutomationRunItems)
-                            statuses.add(jsonAutomationRunItem.getAsJsonObject().get("Status").getAsString());
-                        ArrayList<String> elapsed = new ArrayList<String>();
-                        for (JsonElement jsonAutomationRunItem : jsonAutomationRunItems)
-                            elapsed.add(jsonAutomationRunItem.getAsJsonObject().get("Elapsed").getAsString());
-                        ArrayList<String> environments = new ArrayList<String>();
-                        for (JsonElement jsonAutomationRunItem : jsonAutomationRunItems)
-                            environments.add(jsonAutomationRunItem.getAsJsonObject().get("Environment").getAsJsonObject().get("Title").getAsString());
-
-                        ArrayList<String> caseTitles = new ArrayList<String>();
-                        for (JsonElement jsonAutomationRunItem : jsonAutomationRunItems) {
-                            String caseTitle = Utils.defaultStringIfNull(jsonAutomationRunItem.getAsJsonObject().get("Case").getAsJsonObject().get("Title"), "Null case Title");
-                            if (caseTitle.contentEquals("Null case Title"))
-                                caseTitles.add(caseTitles.get(caseTitles.size() - 1));
+                            if (doneStatusValue.contentEquals("Failed"))
+                                failedCount += doneCount;
                             else
-                                caseTitles.add(caseTitle);
-                        }
+                                passedCount += doneCount;
 
 
-                        for (int i = 0; i < jsonAutomationRunItems.size(); i++) {
+                            ///////////AutomationRunItemsInfo
+                            JsonArray jsonAutomationRunItems = lastRun.get("AutomationRunItems").getAsJsonArray();
 
-                            //double seconds = jsonArray.getJSONObject(i).getDouble("TotalSeconds");
-                            double seconds = parseExecutionTimeToSeconds(elapsed.get(i));
+                            ArrayList<String> automationRunId = new ArrayList<String>();
+                            for (JsonElement jsonAutomationRunItem : jsonAutomationRunItems)
+                                automationRunId.add(jsonAutomationRunItem.getAsJsonObject().get("AutomationRunId").getAsString());
+                            ArrayList<String> statuses = new ArrayList<String>();
+                            for (JsonElement jsonAutomationRunItem : jsonAutomationRunItems)
+                                statuses.add(jsonAutomationRunItem.getAsJsonObject().get("Status").getAsString());
+                            ArrayList<String> elapsed = new ArrayList<String>();
+                            for (JsonElement jsonAutomationRunItem : jsonAutomationRunItems)
+                                elapsed.add(defaultElapsedIfNull(jsonAutomationRunItem.getAsJsonObject().get("Elapsed")));
+                            ArrayList<String> environments = new ArrayList<String>();
+                            for (JsonElement jsonAutomationRunItem : jsonAutomationRunItems)
+                                environments.add(jsonAutomationRunItem.getAsJsonObject().get("Environment").getAsJsonObject().get("Title").getAsString());
 
-                            listener.getLogger().println(Messages.CASE_CONSOLE_LOG_SEPARATOR);
-
-                            if (statuses.get(i).contentEquals("Failed") || (statuses.get(i).contentEquals("Done") && doneStatusValue.contentEquals("Failed"))) {
-                                JsonArray jsonKeyframes = jsonAutomationRunItems.get(i).getAsJsonObject().get("Keyframes").getAsJsonArray();
-
-                                //KeyframeInfo
-                                ArrayList<String> keyFrameTimeStamps = new ArrayList<String>();
-                                for (JsonElement jsonKeyFrame : jsonKeyframes)
-                                    keyFrameTimeStamps.add(jsonKeyFrame.getAsJsonObject().get("Timestamp").getAsString());
-                                ArrayList<String> keyFrameLogMessages = new ArrayList<String>();
-                                for (JsonElement jsonKeyFrame : jsonKeyframes)
-                                    keyFrameLogMessages.add(jsonKeyFrame.getAsJsonObject().get("LogMessage").getAsString());
+                            ArrayList<String> caseTitles = new ArrayList<String>();
+                            for (JsonElement jsonAutomationRunItem : jsonAutomationRunItems) {
+                                String caseTitle = Utils.defaultStringIfNull(jsonAutomationRunItem.getAsJsonObject().get("Case").getAsJsonObject().get("Title"), "Null case Title");
+                                if (caseTitle.contentEquals("Null case Title"))
+                                    caseTitles.add(caseTitles.get(caseTitles.size() - 1));
+                                else
+                                    caseTitles.add(caseTitle);
+                            }
 
 
-                                listener.getLogger().println(String.format(Messages.CASE_INFORMATION, caseTitles.get(i), statuses.get(i), elapsed.get(i)));
+                            for (int i = 0; i < jsonAutomationRunItems.size(); i++) {
 
-                                String fullstacktrace = "";
-                                int currentKeyFrameIndex = 0;
+                                //double seconds = jsonArray.getJSONObject(i).getDouble("TotalSeconds");
+                                double seconds = parseExecutionTimeToSeconds(elapsed.get(i));
 
-                                for (JsonElement jsonKeyFrame : jsonKeyframes) {
-                                    String level = Utils.defaultStringIfNull(jsonKeyFrame.getAsJsonObject().get("Level"), "");
-                                    if (!level.contentEquals("") && !level.contentEquals("Trace")) {
-                                        String stacktrace = String.format(Messages.CASE_STACKTRACE_FORMAT, keyFrameTimeStamps.get(currentKeyFrameIndex), keyFrameLogMessages.get(currentKeyFrameIndex));
-                                        listener.getLogger().println(stacktrace);
-                                        fullstacktrace += stacktrace;
-                                        fullstacktrace += "&#xA;"; //fullstacktrace += '\n';
+                                listener.getLogger().println(Messages.CASE_CONSOLE_LOG_SEPARATOR);
+
+                                if (statuses.get(i).contentEquals("Failed") || (statuses.get(i).contentEquals("Done") && doneStatusValue.contentEquals("Failed")) || statuses.get(i).contentEquals("Error") || statuses.get(i).contentEquals("Cancelled")) {
+                                    if(statuses.get(i).contentEquals("Error") || statuses.get(i).contentEquals("Cancelled"))
+                                        failedCount++;
+
+                                    JsonArray jsonKeyframes = jsonAutomationRunItems.get(i).getAsJsonObject().get("Keyframes").getAsJsonArray();
+
+                                    //KeyframeInfo
+                                    ArrayList<String> keyFrameTimeStamps = new ArrayList<String>();
+                                    for (JsonElement jsonKeyFrame : jsonKeyframes)
+                                        keyFrameTimeStamps.add(jsonKeyFrame.getAsJsonObject().get("Timestamp").getAsString());
+                                    ArrayList<String> keyFrameLogMessages = new ArrayList<String>();
+                                    for (JsonElement jsonKeyFrame : jsonKeyframes)
+                                        keyFrameLogMessages.add(jsonKeyFrame.getAsJsonObject().get("LogMessage").getAsString());
+
+
+                                    listener.getLogger().println(String.format(Messages.CASE_INFORMATION, caseTitles.get(i), statuses.get(i), elapsed.get(i)));
+
+                                    String fullstacktrace = "";
+                                    int currentKeyFrameIndex = 0;
+
+                                    for (JsonElement jsonKeyFrame : jsonKeyframes) {
+                                        String level = Utils.defaultStringIfNull(jsonKeyFrame.getAsJsonObject().get("Level"), "");
+                                        if (!level.contentEquals("") && !level.contentEquals("Trace")) {
+                                            String stacktrace = String.format(Messages.CASE_STACKTRACE_FORMAT, keyFrameTimeStamps.get(currentKeyFrameIndex), keyFrameLogMessages.get(currentKeyFrameIndex));
+                                            listener.getLogger().println(stacktrace);
+                                            fullstacktrace += stacktrace;
+                                            fullstacktrace += "&#xA;";//fullstacktrace += '\n';
+                                        }
+
+                                        currentKeyFrameIndex++;
                                     }
 
-                                    currentKeyFrameIndex++;
+                                    fullstacktrace += "Environment: " + environments.get(i);
+                                    listener.getLogger().println("Environment: " + environments.get(i));
+                                    buildResult.Schedules.get(currentScheduleIndex).Cases.add(new Case(caseTitles.get(i), statuses.get(i), seconds, fullstacktrace, ScheduleTitle/* + "[" + ScheduleId + "]"*/));
+                                } else {
+                                    listener.getLogger().println(String.format(Messages.CASE_INFORMATION, caseTitles.get(i), statuses.get(i), elapsed.get(i)));
+                                    buildResult.Schedules.get(currentScheduleIndex).Cases.add(new Case(caseTitles.get(i), statuses.get(i), seconds, ScheduleTitle/* + "[" + ScheduleId + "]"*/));
                                 }
-
-                                fullstacktrace += "Environment: " + environments.get(i);
-                                listener.getLogger().println("Environment: " + environments.get(i));
-                                buildResult.Schedules.get(currentScheduleIndex).Cases.add(new Case(caseTitles.get(i), statuses.get(i), seconds, fullstacktrace, ScheduleTitle/* + "[" + ScheduleId + "]"*/));
-                            } else {
-                                listener.getLogger().println(String.format(Messages.CASE_INFORMATION, caseTitles.get(i), statuses.get(i), elapsed.get(i)));
-                                buildResult.Schedules.get(currentScheduleIndex).Cases.add(new Case(caseTitles.get(i), statuses.get(i), seconds, ScheduleTitle/* + "[" + ScheduleId + "]"*/));
                             }
-                        }
 
-                        if (buildResult.Schedules.get(currentScheduleIndex).getFailed() > 0) {
-                            buildResult.Schedules.get(currentScheduleIndex).setStatus("Failed");
-                        } else {
-                            buildResult.Schedules.get(currentScheduleIndex).setStatus("Passed");
-                        }
-                    } else {
-                        String errorMessage = String.format(Messages.SCHEDULE_HAS_NO_CASES_XML, ScheduleId, response.getResponseBody());
-                        buildResult.Schedules.get(currentScheduleIndex).setError(errorMessage);
-                        buildResult.Schedules.get(currentScheduleIndex).incErrors();
-                        listener.error(String.format(Messages.SCHEDULE_HAS_NO_CASES, ScheduleId, response.getResponseBody()));
-                        invalidSchedules.add(new InvalidSchedule(ScheduleId, errorMessage));
+                            buildResult.Schedules.get(currentScheduleIndex).setPassed(passedCount);
+                            buildResult.Schedules.get(currentScheduleIndex).setFailed(failedCount);
+
+                            if (buildResult.Schedules.get(currentScheduleIndex).getFailed() > 0)
+                                buildResult.Schedules.get(currentScheduleIndex).setStatus("Failed");
+                            else
+                                buildResult.Schedules.get(currentScheduleIndex).setStatus("Passed");
                     }
+                break;
 
-                }
+                case 404:
+                    String errorMessage404 = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
+                    errorMessage404 += String.format("\n%1$s",String.format(Messages.NO_SUCH_SCHEDULE_WAS_FOUND, schedule.getValue(), schedule.getKey()));
+                    throw new Exception(errorMessage404);
+
+                case 500:
+                    String errorMessage500 = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
+                    errorMessage500 += String.format("\n%1$s",Messages.CONTROLLER_RESPONDED_WITH_ERRORS);
+                    throw new Exception(errorMessage500);
+
+                default:
+                    String errorMessage = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
+                    buildResult.Schedules.get(currentScheduleIndex).setError(errorMessage);
+                    throw new Exception(errorMessage);
             }
+
         } catch (InterruptedException e) {
             listener.error(e.getMessage());
             buildResult.Schedules.get(currentScheduleIndex).setError(e.getMessage());
@@ -375,10 +404,11 @@ public final class PluginHandler {
         } catch (Exception e)
         {
             String errorMessage = String.format(Messages.SCHEDULE_STATE_FAILURE, schedule.getValue(), schedule.getKey());
-            buildResult.Schedules.get(currentScheduleIndex).setError(errorMessage);
-            buildResult.Schedules.get(currentScheduleIndex).incErrors();
             listener.error(errorMessage);
             listener.error(e.getMessage());
+            listener.error(Messages.PLEASE_CONTACT_SUPPORT);
+            buildResult.Schedules.get(currentScheduleIndex).setError(String.format("%1$s\n%2$s",errorMessage,e.getMessage()));
+            buildResult.Schedules.get(currentScheduleIndex).incErrors();
             invalidSchedules.add(new InvalidSchedule(String.format(Messages.SCHEDULE_FORMAT,schedule.getValue(),schedule.getKey()),buildResult.Schedules.get(currentScheduleIndex).getError()));
         } finally {
             return isScheduleStillRunning;
@@ -400,7 +430,7 @@ public final class PluginHandler {
             m.marshal(buildResult, writer);
 
             StringWriter formattedWriter  =  new StringWriter();
-            formattedWriter.append(writer.getBuffer().toString().replace("&amp;#xA","&#xA"));
+            formattedWriter.append(writer.getBuffer().toString().replace("&amp;#xA;","&#xA;"));
 
             writer = null;
 
@@ -461,5 +491,14 @@ public final class PluginHandler {
     {
         Integer temp =  Utils.defaultIntIfNull(lastRun.get(statusName), 0);
         return temp.intValue();
+    }
+
+    private String defaultElapsedIfNull(JsonElement rawElapsed)
+    {
+        if(rawElapsed != null)
+            return rawElapsed.getAsString();
+        else
+            return "00:00:00.0000000";
+
     }
 }
