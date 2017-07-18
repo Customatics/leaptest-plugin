@@ -135,14 +135,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
             listener.getLogger().println(Messages.PLUGIN_SUCCESSFUL_FINISH);
         }
 
-        catch (IndexOutOfBoundsException e)
-        {
-            listener.error(Messages.NO_SCHEDULES_OR_WRONG_URL_ERROR);
-            listener.error(e.getMessage());
-        }
-        catch (InterruptedException e) {
-            listener.error(e.getMessage());
-        }
+
         catch (Exception e)
         {
             listener.error(Messages.PLUGIN_ERROR_FINISH);

@@ -44,5 +44,7 @@ public final class Messages {
     public static final String PLEASE_CONTACT_SUPPORT = "If nothing helps, please contact support https://leaptest.com/support and provide the next information:\n1.Plugin Logs\n2.Leaptest and plugin version\n3.Controller logs from the moment you've run the plugin.\n4.Assets without videos if possible.\nYou can find them {Path to Leaptest}/LEAPTEST/Assets\nThank you";
 
     public static final String ERROR_CODE_MESSAGE = "Code: %1$s Status: %2$s!";
+    public static final String COULD_NOT_CONNECT_TO = "Could not connect to %1$s! Check it and try again!";
+
 
 }
