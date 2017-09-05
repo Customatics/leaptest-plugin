@@ -8,10 +8,7 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractProject;
-import hudson.model.Result;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
@@ -24,6 +21,8 @@ import org.kohsuke.stapler.StaplerRequest;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
 
 
 public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuildStep {
@@ -68,10 +67,12 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         ScheduleCollection buildResult = new ScheduleCollection();
         ArrayList<String> rawScheduleList = null;
 
-
         String junitReportPath = pluginHandler.getJunitReportFilePath(env.get(Messages.JENKINS_WORKSPACE_VARIABLE), getReport());
         listener.getLogger().println(junitReportPath);
         env = null;
+
+        String schId = null;
+        String schTitle = null;
 
         rawScheduleList = pluginHandler.getRawScheduleList(getSchIds(),getSchNames());
 
@@ -79,28 +80,69 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
 
         try
         {    //Get schedule titles (or/and ids in case of pipeline)
-            schedulesIdTitleHashMap = pluginHandler.getSchedulesIdTitleHashMap(getAddress(),rawScheduleList,listener,buildResult,invalidSchedules);
+            schedulesIdTitleHashMap = pluginHandler.getSchedulesIdTitleHashMap(getAddress(),rawScheduleList, listener, buildResult,invalidSchedules);
             rawScheduleList = null;                                        //don't need that anymore
 
+            if(schedulesIdTitleHashMap.isEmpty())
+            {
+                throw new Exception(Messages.NO_SCHEDULES);
+            }
+
+            List<String> schIdsList = new ArrayList<>(schedulesIdTitleHashMap.keySet());
 
             int currentScheduleIndex = 0;
-            for (HashMap.Entry<String,String> schedule : schedulesIdTitleHashMap.entrySet())
+            boolean needSomeSleep = false;   //this time is required if there are schedules to rerun left
+            while(!schIdsList.isEmpty())
             {
 
-                if (pluginHandler.runSchedule(getAddress(),schedule, currentScheduleIndex, listener, buildResult, invalidSchedules)) // if schedule was successfully run
-                {
-                    boolean isStillRunning = true;
-
-                    do
-                    {
-                        Thread.sleep(timeDelay * 1000); //Time delay
-                        isStillRunning = pluginHandler.getScheduleState(getAddress(),schedule,currentScheduleIndex, getDoneStatusAs(), listener,buildResult, invalidSchedules);
-                    }
-                    while (isStillRunning);
+                if(needSomeSleep) {
+                    Thread.sleep(timeDelay * 1000); //Time delay
+                    needSomeSleep = false;
                 }
 
-                currentScheduleIndex++;
+
+                for(ListIterator<String> iter = schIdsList.listIterator(); iter.hasNext(); )
+                {
+                    schId = iter.next();
+                    schTitle = schedulesIdTitleHashMap.get(schId);
+                    RUN_RESULT runResult = pluginHandler.runSchedule(getAddress(), schId, schTitle, currentScheduleIndex, listener,  buildResult, invalidSchedules);
+                    listener.getLogger().println("Current schedule index: " + currentScheduleIndex);
+
+                    if (runResult.equals(RUN_RESULT.RUN_SUCCESS)) // if schedule was successfully run
+                    {
+
+                        boolean isStillRunning = true;
+
+                        do
+                        {
+
+                            Thread.sleep(timeDelay * 1000); //Time delay
+                            isStillRunning = pluginHandler.getScheduleState(getAddress(),schId,schTitle,currentScheduleIndex,listener, getDoneStatusAs(), buildResult, invalidSchedules);
+                            if(isStillRunning) listener.getLogger().println(String.format(Messages.SCHEDULE_IS_STILL_RUNNING, schTitle, schId));
+
+                        }
+                        while (isStillRunning);
+
+                        iter.remove();
+                        currentScheduleIndex++;
+                    }
+                    else if (runResult.equals(RUN_RESULT.RUN_REPEAT))
+                    {
+                        needSomeSleep = true;
+                    }
+                    else
+                    {
+                        iter.remove();
+                        currentScheduleIndex++;
+                    }
+
+
+                }
             }
+
+            schIdsList = null;
+            schedulesIdTitleHashMap = null;
+
 
             if (invalidSchedules.size() > 0)
             {
@@ -127,25 +169,39 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
 
             pluginHandler.createJUnitReport(junitReportPath,listener,buildResult);
 
-            if (buildResult.getErrors() > 0 || buildResult.getFailedTests() > 0 || invalidSchedules.size() > 0)
+            if (buildResult.getErrors() > 0 || buildResult.getFailedTests() > 0 || invalidSchedules.size() > 0) {
+                listener.getLogger().println("FAILURE");
                 build.setResult(Result.FAILURE);
-            else
+            }
+            else {
+                listener.getLogger().println("SUCCESS");
                 build.setResult(Result.SUCCESS);
+            }
 
             listener.getLogger().println(Messages.PLUGIN_SUCCESSFUL_FINISH);
         }
 
-
+        catch (InterruptedException e)
+        {
+            String interruptedExceptionMessage = String.format(Messages.INTERRUPTED_EXCEPTION, e.getMessage());
+            listener.error(interruptedExceptionMessage);
+            pluginHandler.stopSchedule(getAddress(),schId,schTitle, listener);
+            listener.error("ABORTED");
+            build.setResult(Result.ABORTED);
+        }
         catch (Exception e)
         {
             listener.error(Messages.PLUGIN_ERROR_FINISH);
             listener.error(e.getMessage());
             listener.error(Messages.PLEASE_CONTACT_SUPPORT);
+            listener.error("FAILURE");
             build.setResult(Result.FAILURE);
         }
 
+
         return;
     }
+
 
 
     @Override
@@ -181,6 +237,8 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         }
 
     }
+
+
 
 }
 
