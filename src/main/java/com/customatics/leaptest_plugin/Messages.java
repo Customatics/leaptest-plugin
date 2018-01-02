@@ -57,10 +57,14 @@ public final class Messages {
 
     public static final String LICENSE_EXPIRED = "Your Leaptest license has expired. Please contact support https://leaptest.com/support";
 
+    public static final String WRONG_ACCESS_KEY = "Your Access Key is wrong, empty, changed or expired!";
+
     public static final String SCHEDULE_IS_STILL_RUNNING = "Schedule %1$s[%2$s] is still running!";
 
     public static final String STOPPING_SCHEDULE = "Stopping schedule %1$s[%2$s]!";
     public static final String STOP_SUCCESS = "Schedule %1$s[%2$s] stopped successfully!";
     public static final String STOP_FAIL = "Failed to stop schedule %1$s[%2$s]!";
+
+    public static final String INTEGRATION = "Jenkins-Integration";
 
 }

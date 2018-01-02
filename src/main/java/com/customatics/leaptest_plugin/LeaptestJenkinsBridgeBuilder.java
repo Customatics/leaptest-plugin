@@ -29,6 +29,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
 
 
     private final String address;
+    private final String accessKey;
     private final String delay;
     private final String doneStatusAs;
     private final String report;
@@ -39,10 +40,11 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
 
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public LeaptestJenkinsBridgeBuilder( String address, String delay, String doneStatusAs, String report, String schNames, String schIds )
+    public LeaptestJenkinsBridgeBuilder( String address, String accessKey, String delay, String doneStatusAs, String report, String schNames, String schIds )
     {
 
         this.address = address;
+        this.accessKey = accessKey;
         this.delay = delay;
         this.doneStatusAs = doneStatusAs;
         this.report = report;
@@ -53,6 +55,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
 
     public String getDelay()        { return delay;}
     public String getAddress()      { return address;}
+    public String getAccessKey()    { return accessKey;}
     public String getSchNames()     { return schNames;}
     public String getSchIds()       { return schIds;}
     public String getDoneStatusAs() { return doneStatusAs;}
@@ -80,7 +83,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
 
         try
         {    //Get schedule titles (or/and ids in case of pipeline)
-            schedulesIdTitleHashMap = pluginHandler.getSchedulesIdTitleHashMap(getAddress(),rawScheduleList, listener, buildResult,invalidSchedules);
+            schedulesIdTitleHashMap = pluginHandler.getSchedulesIdTitleHashMap(getAddress(),getAccessKey(),rawScheduleList, listener, buildResult,invalidSchedules);
             rawScheduleList = null;                                        //don't need that anymore
 
             if(schedulesIdTitleHashMap.isEmpty())
@@ -105,7 +108,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
                 {
                     schId = iter.next();
                     schTitle = schedulesIdTitleHashMap.get(schId);
-                    RUN_RESULT runResult = pluginHandler.runSchedule(getAddress(), schId, schTitle, currentScheduleIndex, listener,  buildResult, invalidSchedules);
+                    RUN_RESULT runResult = pluginHandler.runSchedule(getAddress(),getAccessKey(), schId, schTitle, currentScheduleIndex, listener,  buildResult, invalidSchedules);
                     listener.getLogger().println("Current schedule index: " + currentScheduleIndex);
 
                     if (runResult.equals(RUN_RESULT.RUN_SUCCESS)) // if schedule was successfully run
@@ -117,7 +120,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
                         {
 
                             Thread.sleep(timeDelay * 1000); //Time delay
-                            isStillRunning = pluginHandler.getScheduleState(getAddress(),schId,schTitle,currentScheduleIndex,listener, getDoneStatusAs(), buildResult, invalidSchedules);
+                            isStillRunning = pluginHandler.getScheduleState(getAddress(),getAccessKey(),schId,schTitle,currentScheduleIndex,listener, getDoneStatusAs(), buildResult, invalidSchedules);
                             if(isStillRunning) listener.getLogger().println(String.format(Messages.SCHEDULE_IS_STILL_RUNNING, schTitle, schId));
 
                         }
@@ -185,7 +188,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         {
             String interruptedExceptionMessage = String.format(Messages.INTERRUPTED_EXCEPTION, e.getMessage());
             listener.error(interruptedExceptionMessage);
-            pluginHandler.stopSchedule(getAddress(),schId,schTitle, listener);
+            pluginHandler.stopSchedule(getAddress(),getAccessKey(),schId,schTitle, listener);
             listener.error("ABORTED");
             build.setResult(Result.ABORTED);
         }

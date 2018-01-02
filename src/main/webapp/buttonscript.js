@@ -1,9 +1,14 @@
 
 
 function GetSch() {
-          if(!document.getElementsByName("address")[0].value)
+
+          const address = document.getElementById("LeaptestControllerURL").value;
+          const accessKey = document.getElementById("LeaptestAccessKey").value;
+
+
+          if(!address || !accessKey)
           {
-          alert('"Address field is empty! Cannot connect to server!"');
+          alert('"Address or Access Key field is empty! Cannot connect to server!"');
           }
           else
           {
@@ -12,12 +17,13 @@ function GetSch() {
               {
 
                   (jQuery).ajax({
-                      url: document.getElementsByName("address")[0].value + "/api/v1/runSchedules",
+                      url: address + "/api/v1/runSchedules",
+                      headers: { 'AccessKey': accessKey, 'Integration':'Jenkins-Integration' },
                       type: 'GET',
                       dataType:"json",
                       success: function(json)
                       {
-                            var container = document.getElementById("MyContainer");
+                            const container = document.getElementById("MyContainer");
 
 
                             (jQuery)(document).click(function (event) {
@@ -31,11 +37,11 @@ function GetSch() {
                             });
 
 
-                            var schName = new Array();
-                            var schId = new Array();
-                            var schProjectId = new Array();
+                            let schName = new Array();
+                            let schId = new Array();
+                            let schProjectId = new Array();
 
-                            for (var i = 0; i < json.length; i++) {
+                            for (let i = 0; i < json.length; i++) {
                                 if (json[i].IsDisplayedInScheduleList == true) {
                                     schId.push(json[i].Id);
                                     schName.push(json[i].Title);
@@ -43,21 +49,22 @@ function GetSch() {
                                 }
                             }
 
-                            var projects = new Array();
+                            let projects = new Array();
                             (jQuery).ajax({
-                                url: document.getElementsByName("address")[0].value + "/api/v1/Projects",
+                                url: address + "/api/v1/Projects",
+                                headers: { 'AccessKey': accessKey, 'Integration':'Jenkins-Integration'},
                                 type: 'GET',
                                 dataType: "json",
                                 success: function(projJson)
                                 {
-                                    for(var i = 0; i < projJson.length; i++)
+                                    for(let i = 0; i < projJson.length; i++)
                                     {
                                     projects.push(projJson[i].Title);
                                     }
 
-                                    for(var i = 0; i < schProjectId.length; i++)
+                                    for(let i = 0; i < schProjectId.length; i++)
                                     {
-                                        for(var j = 0; j < projJson.length; j++)
+                                        for(let j = 0; j < projJson.length; j++)
                                         {
 
                                             if(schProjectId[i] == projJson[j].Id)
@@ -70,28 +77,28 @@ function GetSch() {
 
                                     container.innerHTML += '<br>';
 
-                                    var drpdwn = document.createElement('ul');
+                                    let drpdwn = document.createElement('ul');
                                     drpdwn.className = 'ul-treefree ul-dropfree';
 
-                                    for(var i = 0; i < projects.length; i++)
+                                    for(let i = 0; i < projects.length; i++)
                                     {
-                                        var projectli = document.createElement('li');
+                                        const projectli = document.createElement('li');
 
-                                        var drop = document.createElement('div');
+                                        const drop = document.createElement('div');
                                         drop.class = 'drop';
                                         drop.style = 'background-position: 0px 0px;';
                                         projectli.appendChild(drop);
                                         projectli.innerHTML+=projects[i];
 
-                                        var schul = document.createElement('ul');
+                                        const schul = document.createElement('ul');
                                         schul.style = 'display:none;  font-weight: normal;';
 
-                                        for(var j = 0; j < schProjectId.length; j++)
+                                        for(let j = 0; j < schProjectId.length; j++)
                                         {
                                             if(projects[i] == schProjectId[j])
                                             {
-                                                var schli = document.createElement('li');
-                                                var chbx = document.createElement('input');
+                                                let schli = document.createElement('li');
+                                                let chbx = document.createElement('input');
                                                 chbx.type = 'checkbox';
                                                 chbx.name = schName[j];
                                                 chbx.id = i;
@@ -127,15 +134,15 @@ function GetSch() {
                                      	});
                                      	(jQuery)(".ul-dropfree").find("ul").slideUp(400).parents("li").children("div.drop").css({'background-position':"0 0"});
 
-                                     var TestNames = document.getElementById("schNames");
-                                     var TestIds = document.getElementById("schIds");
+                                     let TestNames = document.getElementById("schNames");
+                                     let TestIds = document.getElementById("schIds");
 
-                                     var boxes = (jQuery)("#MyContainer input:checkbox");
-                                     var existingTests = new Array();
+                                     let boxes = (jQuery)("#MyContainer input:checkbox");
+                                     let existingTests = new Array();
                                      existingTests = TestNames.value.split("\n");
 
                                      if (TestNames.value != null && TestIds.value != null) {
-                                            for (var i = 0; i < existingTests.length; i++) {
+                                            for (let i = 0; i < existingTests.length; i++) {
                                                 for (j = 0; j < boxes.length; j++)
                                                 {
 
@@ -151,11 +158,11 @@ function GetSch() {
 
                                      (jQuery)("#MyContainer input:checkbox").on("change", function ()
                                      {
-                                         var NamesArray = new Array();
-                                         var IdsArray = new Array();
-                                         for (var i = 0; i < boxes.length; i++)
+                                         const NamesArray = new Array();
+                                         const IdsArray = new Array();
+                                         for (let i = 0; i < boxes.length; i++)
                                          {
-                                              var box = boxes[i];
+                                              const box = boxes[i];
                                               if ((jQuery)(box).prop('checked'))
                                               {
                                                     NamesArray[NamesArray.length] = (jQuery)(box).attr('name');
@@ -175,10 +182,11 @@ function GetSch() {
                                   "Error: " + errorThrown + "\n" +
                                   "This may occur because of the next reasons:\n" +
                                   "1.Wrong Controller URL\n" +
-                                  "2.Controller is not running or updating now, check it in services\n" +
-                                  "3.Your Leaptest Controller port is blocked.\nUse 'netstat -na | find \"9000\"' command, The result should be:\n 0.0.0.0:9000  0.0.0.0:0  LISTENING\n" +
-                                  "4.You are using https in controller URL, which is not supported. HTTP only!\n" +
-                                  "5.Your browser has such a setting enabled that blocks any http requests from https\n" +
+                                  "2.Wrong access Key\n" +
+                                  "3.Controller is not running or updating now, check it in services\n" +
+                                  "4.Your Leaptest Controller port is blocked.\nUse 'netstat -na | find \"9000\"' command, The result should be:\n 0.0.0.0:9000  0.0.0.0:0  LISTENING\n" +
+                                  "5.You are using https in controller URL, which is not supported. HTTP only!\n" +
+                                  "6.Your browser has such a setting enabled that blocks any http requests from https\n" +
                                   "If nothing helps, please contact support https://leaptest.com/support"
                                   );
                                 }
@@ -192,10 +200,11 @@ function GetSch() {
                                 "Error: " + errorThrown + "\n" +
                                 "This may occur because of the next reasons:\n" +
                                 "1.Wrong Controller URL\n" +
-                                "2.Controller is not running or updating now, check it in services\n" +
-                                "3.Your Leaptest Controller port is blocked.\nUse 'netstat -na | find \"9000\"' command, The result should be:\n 0.0.0.0:9000  0.0.0.0:0  LISTENING\n" +
-                                "4.You are using https in controller URL, which is not supported. HTTP only!\n" +
-                                "5.Your browser has such a setting enabled that blocks any http requests from https\n" +
+                                "2.Wrong access Key\n" +
+                                "3.Controller is not running or updating now, check it in services\n" +
+                                "4.Your Leaptest Controller port is blocked.\nUse 'netstat -na | find \"9000\"' command, The result should be:\n 0.0.0.0:9000  0.0.0.0:0  LISTENING\n" +
+                                "5.You are using https in controller URL, which is not supported. HTTP only!\n" +
+                                "6.Your browser has such a setting enabled that blocks any http requests from https\n" +
                                 "If nothing helps, please contact support https://leaptest.com/support"
                                 );
                       }

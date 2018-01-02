@@ -11,7 +11,11 @@ Leaptest is a mighty automation testing system and now it can be used for runnin
  - Build status based tests results
  - Generate a xml report file in JUnit format
  - Write tests trace to build output log
- - Smart UI
+ - Smart UI  
+ 
+# Update 1.3.0-beta:
+- For January LEAPTEST release.  
+- LEAPTEST REST API now require Access Key. Relevant functionality has been added.  
  
 # Installing
 - Use maven 
@@ -49,8 +53,8 @@ node
     stage "Leaptest-Jenkins"
 
     step([$class: 'LeaptestJenkinsBridgeBuilder',
-    version:"1.1.0",
     address:"http://win10-agent2:9000",
+	accessKey:"youraccesskey",
     delay:"5",
     doneStatusAs:"Success", //"Failed"
     report:"report.xml",

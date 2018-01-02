@@ -18,8 +18,12 @@
     </f:entry>
      -->
   <f:entry title="Leaptest Controller URL:" field="address">
-    <f:textbox name="address"/>
+    <f:textbox id="LeaptestControllerURL" name="address"/>
   </f:entry>
+
+   <f:entry title="Access Key:" field="accessKey">
+      <f:textbox id="LeaptestAccessKey" name="accessKey" />
+    </f:entry>
 
     <f:entry title="Report file name:" field="report">
         <f:textbox name="report" value="report.xml"/>
