@@ -20,6 +20,7 @@ import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 
@@ -58,14 +59,8 @@ public final class PluginHandler {
         String[] schidsArray = rawScheduleIds.split("\n|, |,");
         String[] testsArray = rawScheduleTitles.split("\n|, |,");
 
-        for(int i = 0; i < schidsArray.length; i++)
-        {
-            rawScheduleList.add(schidsArray[i]);
-        }
-        for(int i = 0; i < testsArray.length; i++)
-        {
-            rawScheduleList.add(testsArray[i]);
-        }
+        rawScheduleList.addAll(Arrays.asList(schidsArray));
+        rawScheduleList.addAll(Arrays.asList(testsArray));
 
         return rawScheduleList;
     }
@@ -94,12 +89,10 @@ public final class PluginHandler {
 
         try {
 
-            try {
-
-                AsyncHttpClient client = new AsyncHttpClient();
+            try(AsyncHttpClient client = new AsyncHttpClient())
+            {
                 Response response = client.prepareGet(scheduleListUri).execute().get();
-                client = null;
-
+                client.close();
 
                 switch (response.getStatusCode()) {
                     case 200:
@@ -208,11 +201,11 @@ public final class PluginHandler {
 
         try {
 
-            try {
-
-                AsyncHttpClient client = new AsyncHttpClient();
+            try(AsyncHttpClient client = new AsyncHttpClient())
+            {
                 Response response = client.preparePut(uri).setBody("").execute().get();
-                client = null;
+                client.close();
+
 
                 switch (response.getStatusCode()) {
                     case 204:
@@ -310,11 +303,12 @@ public final class PluginHandler {
 
         listener.error(String.format(Messages.STOPPING_SCHEDULE,scheduleTitle,scheduleId));
         String uri = String.format(Messages.STOP_SCHEDULE_URI, leaptestAddress, scheduleId);
-        try
+        try(AsyncHttpClient client = new AsyncHttpClient())
         {
-            AsyncHttpClient client = new AsyncHttpClient();
+
             Response response = client.preparePut(uri).setBody("").execute().get();
-            client = null;
+            client.close();
+
 
             switch (response.getStatusCode())
             {
@@ -355,11 +349,11 @@ public final class PluginHandler {
 
         try {
 
-            try {
+            try(AsyncHttpClient client = new AsyncHttpClient())
+            {
 
-                AsyncHttpClient client = new AsyncHttpClient();
                 Response response = client.prepareGet(uri).execute().get();
-                client = null;
+                client.close();
 
                 switch (response.getStatusCode()) {
                     case 200:
@@ -444,7 +438,7 @@ public final class PluginHandler {
 
                                     listener.getLogger().println(String.format(Messages.CASE_INFORMATION, caseTitles.get(i), statuses.get(i), elapsed.get(i)));
 
-                                    String fullKeyframes = "";
+                                    StringBuilder fullKeyframes = new StringBuilder();
                                     int currentKeyFrameIndex = 0;
 
                                     for (JsonElement jsonKeyFrame : jsonKeyframes) {
@@ -452,16 +446,16 @@ public final class PluginHandler {
                                         if (!level.contentEquals("") && !level.contentEquals("Trace")) {
                                             String keyFrame = String.format(Messages.CASE_STACKTRACE_FORMAT, keyFrameTimeStamps.get(currentKeyFrameIndex), keyFrameLogMessages.get(currentKeyFrameIndex));
                                             listener.getLogger().println(keyFrame);
-                                            fullKeyframes += keyFrame;
-                                            fullKeyframes += "&#xA;";//fullKeyframes += '\n';
+                                            fullKeyframes.append(keyFrame);
+                                            fullKeyframes.append("&#xA;");//fullKeyframes += '\n';
                                         }
 
                                         currentKeyFrameIndex++;
                                     }
 
-                                    fullKeyframes += "Environment: " + environments.get(i);
+                                    fullKeyframes.append("Environment: ").append(environments.get(i));
                                     listener.getLogger().println("Environment: " + environments.get(i));
-                                    buildResult.Schedules.get(currentScheduleIndex).Cases.add(new Case(caseTitles.get(i), statuses.get(i), seconds, fullKeyframes, ScheduleTitle/* + "[" + ScheduleId + "]"*/));
+                                    buildResult.Schedules.get(currentScheduleIndex).Cases.add(new Case(caseTitles.get(i), statuses.get(i), seconds, fullKeyframes.toString(), ScheduleTitle/* + "[" + ScheduleId + "]"*/));
                                 } else {
                                     listener.getLogger().println(String.format(Messages.CASE_INFORMATION, caseTitles.get(i), statuses.get(i), elapsed.get(i)));
                                     buildResult.Schedules.get(currentScheduleIndex).Cases.add(new Case(caseTitles.get(i), statuses.get(i), seconds, ScheduleTitle/* + "[" + ScheduleId + "]"*/));
@@ -608,10 +602,7 @@ public final class PluginHandler {
     {
         String status = Utils.defaultStringIfNull(jsonState.get("Status"), "Finished");
 
-        if (status.contentEquals("Running") || status.contentEquals("Queued"))
-            return true;
-        else
-            return false;
+        return status.contentEquals("Running") || status.contentEquals("Queued");
 
     }
 
