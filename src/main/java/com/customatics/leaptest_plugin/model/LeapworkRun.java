@@ -6,7 +6,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 
 @XmlRootElement(name = "testsuite")
-public final class Schedule
+public final class LeapworkRun
 {
     private String scheduleTitle;
 
@@ -29,22 +29,22 @@ public final class Schedule
     private int id;
 
     @XmlElement(name = "testcase")
-    public ArrayList<Case> Cases;
+    public ArrayList<RunItem> runItems;
 
 
-    public Schedule() { Cases = new ArrayList<Case>(); }
-    public Schedule(String title)
+    public LeapworkRun() { runItems = new ArrayList<RunItem>(); }
+    public LeapworkRun(String title)
     {
-        Cases = new ArrayList<Case>();
+        runItems = new ArrayList<RunItem>();
         scheduleTitle = title;
         failed = 0;
         passed = 0;
         errors = 0;
         time = 0;
     }
-    public Schedule(String schid, String title)
+    public LeapworkRun(String schid, String title)
     {
-        Cases = new ArrayList<Case>();
+        runItems = new ArrayList<RunItem>();
         scheduleId = schid;
         scheduleTitle = title;
         failed = 0;
@@ -67,6 +67,7 @@ public final class Schedule
     @XmlAttribute(name = "tests")
     public int    getTotal()                    { return total; }
     public void   setTotal(int tests)           { total = tests; }
+    public void   incTotal()                    { this.total++; }
 
     @XmlAttribute(name = "passed")
     public int    getPassed()                   { return passed; }
@@ -98,6 +99,7 @@ public final class Schedule
     @XmlAttribute(name = "time")
     public double getTime()                     { return time; }
     public void   setTime(double time)          { this.time = time; }
+    public void   addTime(double time)          { this.time += time; }
 
     @XmlAttribute(name = "id")
     public int    getId()                       { return id; }

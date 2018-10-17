@@ -2,6 +2,8 @@ package com.customatics.leaptest_plugin;
 
 import com.google.gson.JsonElement;
 
+import java.util.UUID;
+
 /**
  * Created by User on 26.05.2017.
  */
@@ -11,7 +13,16 @@ public class Utils {
     {
 
         if(jsonElement != null)
-            return jsonElement.getAsString();
+        {
+            try
+            {
+                return jsonElement.getAsString();
+            }
+            catch (Exception e)
+            {
+                return "";
+            }
+        }
         else
             return "";
     }
@@ -20,7 +31,33 @@ public class Utils {
     {
 
         if(jsonElement != null)
-            return jsonElement.getAsString();
+        {
+            try
+            {
+                return jsonElement.getAsString();
+            }
+            catch (Exception e)
+            {
+                return defaultValue;
+            }
+        }
+        else
+            return defaultValue;
+    }
+
+    public static UUID defaultUuidIfNull(JsonElement jsonElement, UUID defaultValue)
+    {
+
+        if(jsonElement != null)
+        {
+            try
+            {
+                return UUID.fromString(jsonElement.getAsString());
+            } catch (Exception e)
+            {
+                return defaultValue;
+            }
+        }
         else
             return defaultValue;
     }
@@ -29,17 +66,87 @@ public class Utils {
     {
 
         if(jsonElement != null)
-            return jsonElement.getAsInt();
+        {
+            try
+            {
+                return jsonElement.getAsInt();
+            }
+            catch (Exception e)
+            {
+                return defaultValue;
+            }
+        }
         else
             return defaultValue;
     }
 
-    public static int defaultIntIfNull(JsonElement jsonElement)
+    public static long defaultLongIfNull(JsonElement jsonElement, long defaultValue)
     {
 
         if(jsonElement != null)
-            return jsonElement.getAsInt();
+        {
+            try
+            {
+                return jsonElement.getAsLong();
+            }
+            catch (Exception e)
+            {
+                return defaultValue;
+            }
+        }
         else
-            return 0;
+            return defaultValue;
+    }
+
+    public static String defaultElapsedIfNull(JsonElement rawElapsed)
+    {
+        if(rawElapsed != null)
+        {
+            try
+            {
+                return rawElapsed.getAsString();
+            }
+            catch (Exception e)
+            {
+                return "00:00:00.0000000";
+            }
+        }
+
+        else
+            return "00:00:00.0000000";
+    }
+    public static double defaultDoubleIfNull(JsonElement jsonElement, double defaultValue)
+    {
+
+        if(jsonElement != null)
+        {
+            try
+            {
+                return jsonElement.getAsDouble();
+            }
+            catch (Exception e)
+            {
+                return defaultValue;
+            }
+        }
+        else
+            return defaultValue;
+    }
+
+    public static boolean defaultBooleanIfNull(JsonElement rawBoolean, boolean defaultValue)
+    {
+        if(rawBoolean != null)
+        {
+            try
+            {
+                return rawBoolean.getAsBoolean();
+            }
+            catch (Exception e)
+            {
+                return defaultValue;
+            }
+        }
+        else
+            return defaultValue;
     }
 }

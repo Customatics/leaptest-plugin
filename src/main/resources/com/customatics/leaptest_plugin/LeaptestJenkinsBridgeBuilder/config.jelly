@@ -10,26 +10,27 @@
     Creates a text field that shows the value of the "name" property.
     When submitted, it will be passed to the corresponding constructor parameter.
   -->
-    <!--
-    <f:entry title="Plugin Version:"  field="version">
-    <select name="version">
-        <option value="1.1.0">1.1.0</option>
-    </select>
-    </f:entry>
-     -->
-  <f:entry title="Leaptest Controller URL:" field="address">
-    <f:textbox name="address"/>
-  </f:entry>
 
-    <f:entry title="Report file name:" field="report">
-        <f:textbox name="report" value="report.xml"/>
+
+    <f:entry title="Leapwork Controller hostname:" field="leapworkHostname">
+      <f:textbox id="leapworkHostname" name="leapworkHostname"/>
     </f:entry>
-    <f:entry  field="schIds" >
-        <f:textarea  id = "schIds"  name="schIds" readonly="true" />
+    <f:entry title="Leapwork Controller port:" field="leapworkPort">
+        <f:textbox id="leapworkPort" name="leapworkPort"/>
+    </f:entry>
+     <f:entry title="Access Key" field="leapworkAccessKey">
+            <f:textbox id="leapworkAccessKey" name="leapworkAccessKey"/>
+     </f:entry>
+
+    <f:entry title="Report file name:" field="leapworkReport">
+        <f:textbox name="leapworkReport" value="report.xml"/>
+    </f:entry>
+    <f:entry  field="leapworkSchIds" >
+        <f:textarea  id="schIds" name="leapworkSchIds" readonly="true" />
     </f:entry>
 
-    <f:entry title="Schedule Names" field="schNames" >
-        <f:textarea id="schNames" name="schNames" readonly="true"/>
+    <f:entry title="Schedule Names" field="leapworkSchNames" >
+        <f:textarea id="schNames" name="leapworkSchNames" readonly="true"/>
     </f:entry>
      <f:entry>
          <span class="yui-button">
@@ -37,16 +38,16 @@
        <button type="button" id="mainButton" visibility="visible"  onclick="GetSch()" value="Select Schedules">Select Schedules</button>
               </span>
          </span>
-      <div id="MyContainer" class="popupDiv" style="display:none; min-width:250px; max-width:700px;">
+      <div id="LeapworkContainer" class="popupDiv" style="display:none; min-width:250px; max-width:700px;">
 
       </div>
    </f:entry>
     <f:advanced>
-        <f:entry title="Delay (seconds):" field="delay">
-            <f:textbox name="delay" />
+        <f:entry title="Delay (seconds):" field="leapworkDelay">
+            <f:textbox name="leapworkDelay" />
         </f:entry>
-        <f:entry title="Done Status:"  field="doneStatusAs" >
-            <select name="doneStatusAs">
+        <f:entry title="Done Status:"  field="leapworkDoneStatusAs" >
+            <select name="leapworkDoneStatusAs">
                 <option value="Failed">Failed</option>
                 <option value="Success">Success</option>
             </select>

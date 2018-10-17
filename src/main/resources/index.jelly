@@ -1,5 +1,5 @@
 <?jelly escape-by-default='true'?>
 
 <div>
-  Integrates Leaptest codeless test automation with Jenkins. Run tests, get results, generate reports.
+  Integrates Leapwork codeless test automation with Jenkins. Run tests, get results, generate reports.
 </div>

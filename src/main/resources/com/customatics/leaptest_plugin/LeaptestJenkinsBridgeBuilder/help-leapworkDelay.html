@@ -1,0 +1,4 @@
+<div>
+During this time, plugin is going to wait before it tries to get schedule state. If schedule is still running, plugin will wait again.<br>
+By default this value is 5 seconds. It is strongly recommended not to use less value, because if plugin tries to get schedule state and the controller has not created it yet, controller will return 500 error code and your schedule will become Invalid for the plugin.
+</div>

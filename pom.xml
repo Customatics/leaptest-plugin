@@ -11,7 +11,7 @@
     </parent>
   <!--  <groupId>com.customatics</groupId> -->
     <artifactId>leaptest-plugin</artifactId>
-    <version>1.2.1</version>
+    <version>3.0.0</version>
     <packaging>hpi</packaging>
     <dependencies>
         <dependency>
@@ -62,8 +62,8 @@
         -->
     </properties>
 
-    <name>Leaptest Integration</name>
-    <description>Integrates Leaptest codeless test automation with Jenkins. Run tests, get results, generate reports.</description>
+    <name>Leapwork Integration</name>
+    <description>Integrates Leapwork codeless test automation with Jenkins. Run tests, get results, generate reports.</description>
     <url>https://github.com/Customatics/leaptest-plugin</url>
 
     <!-- The default licence for Jenkins OSS Plugins is MIT. Substitute for the applicable one if needed. -->

@@ -1,13 +1,11 @@
 package com.customatics.leaptest_plugin;
 
-import com.customatics.leaptest_plugin.model.Case;
+import com.customatics.leaptest_plugin.model.LeapworkRun;
+import com.customatics.leaptest_plugin.model.RunItem;
 import com.customatics.leaptest_plugin.model.InvalidSchedule;
-import com.customatics.leaptest_plugin.model.Schedule;
-import com.customatics.leaptest_plugin.model.ScheduleCollection;
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher;
+import com.customatics.leaptest_plugin.model.RunCollection;
+import com.ning.http.client.AsyncHttpClient;
+import hudson.*;
 import hudson.model.*;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
@@ -19,151 +17,132 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuildStep {
 
-
-    private final String address;
-    private final String delay;
-    private final String doneStatusAs;
-    private final String report;
-    private final String schIds;
-    private final String schNames;
+    private final String leapworkHostname;
+    private final String leapworkPort;
+    private final String leapworkAccessKey;
+    private final String leapworkDelay;
+    private final String leapworkDoneStatusAs;
+    private final String leapworkReport;
+    private final String leapworkSchIds;
+    private final String leapworkSchNames;
 
     private static PluginHandler pluginHandler = PluginHandler.getInstance();
 
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public LeaptestJenkinsBridgeBuilder( String address, String delay, String doneStatusAs, String report, String schNames, String schIds )
+    public LeaptestJenkinsBridgeBuilder(String leapworkHostname,String leapworkPort, String leapworkAccessKey, String leapworkDelay, String leapworkDoneStatusAs, String leapworkReport, String leapworkSchNames, String leapworkSchIds )
     {
 
-        this.address = address;
-        this.delay = delay;
-        this.doneStatusAs = doneStatusAs;
-        this.report = report;
-        this.schIds = schIds;
-        this.schNames = schNames;
+        this.leapworkHostname = leapworkHostname;
+        this.leapworkPort = leapworkPort;
+        this.leapworkAccessKey = leapworkAccessKey;
+        this.leapworkDelay = leapworkDelay;
+        this.leapworkDoneStatusAs = leapworkDoneStatusAs;
+        this.leapworkReport = leapworkReport;
+        this.leapworkSchIds = leapworkSchIds;
+        this.leapworkSchNames = leapworkSchNames;
     }
 
-
-    public String getDelay()        { return delay;}
-    public String getAddress()      { return address;}
-    public String getSchNames()     { return schNames;}
-    public String getSchIds()       { return schIds;}
-    public String getDoneStatusAs() { return doneStatusAs;}
-    public String getReport()       { return  report;}
+    public String getLeapworkHostname()     { return leapworkHostname;}
+    public String getLeapworkPort()         { return leapworkPort;}
+    public String getLeapworkAccessKey()    { return leapworkAccessKey;}
+    public String getLeapworkDelay()        { return leapworkDelay;}
+    public String getLeapworkSchNames()     { return leapworkSchNames;}
+    public String getLeapworkSchIds()       { return leapworkSchIds;}
+    public String getLeapworkDoneStatusAs() { return leapworkDoneStatusAs;}
+    public String getLeapworkReport()       { return leapworkReport;}
 
     //@Override
     public void perform(final Run<?,?> build, FilePath workspace, Launcher launcher, final TaskListener listener) throws IOException, InterruptedException {
 
         EnvVars env = build.getEnvironment(listener);
-        HashMap<String, String> schedulesIdTitleHashMap = null; // Id-Title
+        HashMap<UUID, String> schedulesIdTitleHashMap = null; // Id-Title
         ArrayList<InvalidSchedule> invalidSchedules = new ArrayList<>();
-        ScheduleCollection buildResult = new ScheduleCollection();
         ArrayList<String> rawScheduleList = null;
 
-        String junitReportPath = pluginHandler.getJunitReportFilePath(env.get(Messages.JENKINS_WORKSPACE_VARIABLE), getReport());
+        String junitReportPath = pluginHandler.getJunitReportFilePath(env.get(Messages.JENKINS_WORKSPACE_VARIABLE), leapworkReport);
         listener.getLogger().println(junitReportPath);
         env = null;
 
-        String schId = null;
-        String schTitle = null;
 
-        rawScheduleList = pluginHandler.getRawScheduleList(getSchIds(),getSchNames());
+        rawScheduleList = pluginHandler.getRawScheduleList(leapworkSchIds, leapworkSchNames);
+        String controllerApiHttpAddress = pluginHandler.getControllerApiHttpAdderess(leapworkHostname, leapworkPort, listener);
 
-        int timeDelay = pluginHandler.getTimeDelay(getDelay());
+        int timeDelay = pluginHandler.getTimeDelay(leapworkDelay, listener);
 
-        try
-        {    //Get schedule titles (or/and ids in case of pipeline)
-            schedulesIdTitleHashMap = pluginHandler.getSchedulesIdTitleHashMap(getAddress(),rawScheduleList, listener, buildResult,invalidSchedules);
-            rawScheduleList = null;                                        //don't need that anymore
+        try( AsyncHttpClient mainClient = new AsyncHttpClient())
+        {
+
+            //Get schedule titles (or/and ids in case of pipeline)
+            schedulesIdTitleHashMap = pluginHandler.getSchedulesIdTitleHashMap(mainClient, leapworkAccessKey, controllerApiHttpAddress,rawScheduleList, listener,invalidSchedules);
+            rawScheduleList.clear();//don't need that anymore
 
             if(schedulesIdTitleHashMap.isEmpty())
             {
                 throw new Exception(Messages.NO_SCHEDULES);
             }
 
-            List<String> schIdsList = new ArrayList<>(schedulesIdTitleHashMap.keySet());
+            List<UUID> schIdsList = new ArrayList<>(schedulesIdTitleHashMap.keySet());
+            HashMap<UUID, LeapworkRun> resultsMap = new HashMap<>();
 
-            int currentScheduleIndex = 0;
-            boolean needSomeSleep = false;   //this time is required if there are schedules to rerun left
-            while(!schIdsList.isEmpty())
+            ListIterator<UUID> iter = schIdsList.listIterator();
+            while( iter.hasNext())
             {
 
-                if(needSomeSleep) {
-                    Thread.sleep(timeDelay * 1000); //Time delay
-                    needSomeSleep = false;
-                }
+                UUID schId = iter.next();
+                String schTitle = schedulesIdTitleHashMap.get(schId);
+                LeapworkRun run  = new LeapworkRun(schTitle);
 
-
-                for(ListIterator<String> iter = schIdsList.listIterator(); iter.hasNext(); )
+                UUID runId = pluginHandler.runSchedule(mainClient,controllerApiHttpAddress, leapworkAccessKey, schId, schTitle, listener,  run);
+                if(runId != null)
                 {
-                    schId = iter.next();
-                    schTitle = schedulesIdTitleHashMap.get(schId);
-                    RUN_RESULT runResult = pluginHandler.runSchedule(getAddress(), schId, schTitle, currentScheduleIndex, listener,  buildResult, invalidSchedules);
-                    listener.getLogger().println("Current schedule index: " + currentScheduleIndex);
-
-                    if (runResult.equals(RUN_RESULT.RUN_SUCCESS)) // if schedule was successfully run
-                    {
-
-                        boolean isStillRunning = true;
-
-                        do
-                        {
-
-                            Thread.sleep(timeDelay * 1000); //Time delay
-                            isStillRunning = pluginHandler.getScheduleState(getAddress(),schId,schTitle,currentScheduleIndex,listener, getDoneStatusAs(), buildResult, invalidSchedules);
-                            if(isStillRunning) listener.getLogger().println(String.format(Messages.SCHEDULE_IS_STILL_RUNNING, schTitle, schId));
-
-                        }
-                        while (isStillRunning);
-
-                        iter.remove();
-                        currentScheduleIndex++;
-                    }
-                    else if (runResult.equals(RUN_RESULT.RUN_REPEAT))
-                    {
-                        needSomeSleep = true;
-                    }
-                    else
-                    {
-                        iter.remove();
-                        currentScheduleIndex++;
-                    }
-
-
+                    resultsMap.put(runId,run);
+                    CollectScheduleRunResults(controllerApiHttpAddress, leapworkAccessKey,runId,schTitle,timeDelay,leapworkDoneStatusAs,run, listener);
                 }
+                else
+                    resultsMap.put(UUID.randomUUID(),run);
+
+                iter.remove();
+
             }
 
-            schIdsList = null;
-            schedulesIdTitleHashMap = null;
-
+            schIdsList.clear();
+            schedulesIdTitleHashMap.clear();
+            RunCollection buildResult = new RunCollection();
 
             if (invalidSchedules.size() > 0)
             {
                 listener.getLogger().println(Messages.INVALID_SCHEDULES);
-                buildResult.Schedules.add(new Schedule(Messages.INVALID_SCHEDULES));
 
                 for (InvalidSchedule invalidSchedule : invalidSchedules)
                 {
-                    listener.getLogger().println(invalidSchedule.getName());
-                    buildResult.Schedules.get(buildResult.Schedules.size() - 1).Cases.add(new Case(invalidSchedule.getName(), "Failed", 0, invalidSchedule.getStackTrace(), "INVALID SCHEDULE"));
+                    listener.getLogger().println(String.format("%1$s: %2$s",invalidSchedule.getName(),invalidSchedule.getStackTrace()));
+                    LeapworkRun notFoundSchedule = new LeapworkRun(invalidSchedule.getName());
+                    RunItem invalidRunItem = new RunItem("Error","Error",0,invalidSchedule.getStackTrace(),invalidSchedule.getName());
+                    notFoundSchedule.runItems.add(invalidRunItem);
+                    notFoundSchedule.setError(invalidSchedule.getStackTrace());
+                    buildResult.leapworkRuns.add(notFoundSchedule);
                 }
 
             }
 
-            for (Schedule schedule : buildResult.Schedules)
+            List<LeapworkRun> resultRuns = new ArrayList<>(resultsMap.values());
+            for (LeapworkRun run : resultRuns)
             {
-                buildResult.addFailedTests(schedule.getFailed());
-                buildResult.addPassedTests(schedule.getPassed());
-                buildResult.addErrors(schedule.getErrors());
-                schedule.setTotal(schedule.getPassed() + schedule.getFailed());
-                buildResult.addTotalTime(schedule.getTime());
+                buildResult.leapworkRuns.add(run);
+
+                buildResult.addFailedTests(run.getFailed());
+                buildResult.addPassedTests(run.getPassed());
+                buildResult.addErrors(run.getErrors());
+                run.setTotal(run.getPassed() + run.getFailed());
+                buildResult.addTotalTime(run.getTime());
             }
             buildResult.setTotalTests(buildResult.getFailedTests() + buildResult.getPassedTests());
 
@@ -179,15 +158,13 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
             }
 
             listener.getLogger().println(Messages.PLUGIN_SUCCESSFUL_FINISH);
-        }
 
-        catch (InterruptedException e)
+        }
+        catch (AbortException | InterruptedException e)
         {
-            String interruptedExceptionMessage = String.format(Messages.INTERRUPTED_EXCEPTION, e.getMessage());
-            listener.error(interruptedExceptionMessage);
-            pluginHandler.stopSchedule(getAddress(),schId,schTitle, listener);
             listener.error("ABORTED");
             build.setResult(Result.ABORTED);
+            listener.error(Messages.PLUGIN_ERROR_FINISH);
         }
         catch (Exception e)
         {
@@ -203,6 +180,114 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
     }
 
 
+    private static void CollectScheduleRunResults(String controllerApiHttpAddress, String accessKey, UUID runId, String scheduleName, int timeDelay,String doneStatusAs, LeapworkRun resultRun,  final TaskListener listener) throws AbortException, InterruptedException {
+        List<UUID> runItemsId = new ArrayList<>();
+        Object waiter = new Object();
+        //get statuses
+        try(AsyncHttpClient client = new AsyncHttpClient())
+        {
+            boolean isStillRunning = true;
+
+            do
+            {
+                synchronized (waiter)
+                {
+                    waiter.wait(timeDelay * 1000);//Time delay
+                }
+
+                List<UUID> executedRunItems = pluginHandler.getRunRunItems(client,controllerApiHttpAddress,accessKey,runId);
+                executedRunItems.removeAll(runItemsId); //left only new
+
+
+                for(ListIterator<UUID> iter = executedRunItems.listIterator(); iter.hasNext();)
+                {
+                    UUID runItemId = iter.next();
+                    RunItem runItem = pluginHandler.getRunItem(client,controllerApiHttpAddress,accessKey,runItemId, scheduleName,listener );
+
+                    String status = runItem.getCaseStatus();
+
+
+                    resultRun.addTime(runItem.getElapsedTime());
+                    switch (status)
+                    {
+                        case "NoStatus":
+                        case "Initializing":
+                        case "Connecting":
+                        case "Connected":
+                        case "Running":
+                            iter.remove();
+                            break;
+                        case "Passed":
+                            resultRun.incPassed();
+                            resultRun.runItems.add(runItem);
+                            resultRun.incTotal();
+                            break;
+                        case "Failed":
+                            resultRun.incFailed();
+                            resultRun.runItems.add(runItem);
+                            resultRun.incTotal();
+                            break;
+                        case "Error":
+                        case "Inconclusive":
+                        case "Timeout":
+                        case "Cancelled":
+                            resultRun.incErrors();
+                            resultRun.runItems.add(runItem);
+                            resultRun.incTotal();
+                            break;
+                        case"Done":
+                            resultRun.runItems.add(runItem);
+                            if(doneStatusAs.contentEquals("Success"))
+                                resultRun.incPassed();
+                            else
+                                resultRun.incFailed();
+                            resultRun.incTotal();
+                            break;
+
+                    }
+
+                }
+
+                runItemsId.addAll(executedRunItems);
+
+                String runStatus = pluginHandler.getRunStatus(client,controllerApiHttpAddress,accessKey,runId);
+                if(runStatus.contentEquals("Finished"))
+                {
+                    List<UUID> allExecutedRunItems = pluginHandler.getRunRunItems(client,controllerApiHttpAddress,accessKey,runId);
+                    if(allExecutedRunItems.size() > 0 && allExecutedRunItems.size() <= runItemsId.size())
+                        isStillRunning = false;
+                }
+
+            }
+            while (isStillRunning);
+
+        }
+        catch (AbortException | InterruptedException e)
+        {
+            Lock lock = new ReentrantLock();
+            lock.lock();
+            try
+            {
+                String interruptedExceptionMessage = String.format(Messages.INTERRUPTED_EXCEPTION, e.getMessage());
+                listener.error(interruptedExceptionMessage);
+                RunItem invalidItem = new RunItem("Aborted run","Cancelled",0,e.getMessage(),scheduleName);
+                pluginHandler.stopRun(controllerApiHttpAddress,runId,scheduleName,accessKey, listener);
+                resultRun.incErrors();
+                resultRun.runItems.add(invalidItem);
+            }
+            finally {
+                lock.unlock();
+                throw e;
+            }
+        }
+        catch (Exception e)
+        {
+            listener.error(e.getMessage());
+            RunItem invalidItem = new RunItem("Invalid run","Error",0,e.getMessage(),scheduleName);
+            resultRun.incErrors();
+            resultRun.runItems.add(invalidItem);
+        }
+    }
 
     @Override
     public  DescriptorImpl getDescriptor() {

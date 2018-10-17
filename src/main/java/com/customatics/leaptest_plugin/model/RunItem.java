@@ -6,7 +6,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "testcase")
-public final class Case
+public final class RunItem
 {
 
     private String caseName;
@@ -19,9 +19,9 @@ public final class Case
     @XmlElement
     public Failure failure;
 
-    public Case() { }
+    public RunItem() { }
 
-    public Case(String caseTitle, String caseStatus, double elapsed, String schedule)
+    public RunItem(String caseTitle, String caseStatus, double elapsed, String schedule)
     {
         caseName = caseTitle;
         this.caseStatus = caseStatus;
@@ -30,7 +30,7 @@ public final class Case
         failure = null;
     }
 
-    public Case(String caseTitle, String caseStatus, double elapsed, String stacktrace, String schedule)
+    public RunItem(String caseTitle, String caseStatus, double elapsed, String stacktrace, String schedule)
     {
         caseName = caseTitle;
         this.caseStatus = caseStatus;

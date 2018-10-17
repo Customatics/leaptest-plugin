@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 @XmlRootElement(name = "testsuites")
 @XmlAccessorType(XmlAccessType.NONE)
-public final class ScheduleCollection
+public final class RunCollection
 {
 
     public int totalTests = 0;
@@ -23,12 +23,12 @@ public final class ScheduleCollection
     private double totalTime = 0;
 
     @XmlElement(name = "testsuite")
-    public ArrayList<Schedule> Schedules;
+    public ArrayList<LeapworkRun> leapworkRuns;
 
 
-    public ScheduleCollection()
+    public RunCollection()
     {
-        Schedules = new ArrayList<Schedule>();
+        leapworkRuns = new ArrayList<LeapworkRun>();
 
         totalTests = 0;
         passedTests = 0;
