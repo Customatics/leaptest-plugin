@@ -23,7 +23,8 @@
      </f:entry>
 
     <f:entry title="Report file name:" field="leapworkReport">
-        <f:textbox name="leapworkReport" value="report.xml"/>
+     <!--   <f:textbox name="leapworkReport" value="report.xml"/> -->
+     <f:textbox name="leapworkReport" default="${descriptor.DEFAULT_REPORTNAME}"/>
     </f:entry>
     <f:entry  field="leapworkSchIds" >
         <f:textarea  id="schIds" name="leapworkSchIds" readonly="true" />
@@ -44,13 +45,13 @@
    </f:entry>
     <f:advanced>
         <f:entry title="Delay (seconds):" field="leapworkDelay">
-            <f:textbox name="leapworkDelay" />
+          <f:textbox name="leapworkDelay" default="${descriptor.DEFAULT_DELAY}"/>
         </f:entry>
-        <f:entry title="Done Status:"  field="leapworkDoneStatusAs" >
-            <select name="leapworkDoneStatusAs">
-                <option value="Failed">Failed</option>
-                <option value="Success">Success</option>
-            </select>
+        <f:entry title="Done Status:" field="leapworkDoneStatusAs">
+            <f:select />
+        </f:entry>
+        <f:entry title="Write keyframes for passed flows to report?" field="leapworkWritePassedFlowKeyFrames" >
+          <f:checkbox />
         </f:entry>
     </f:advanced>
 
@@ -131,7 +132,7 @@ this.executed = true;
     head.appendChild(style);
 
     var schtextarea = document.getElementById("schIds");
-    schtextarea.style.display = 'none';
+    //schtextarea.style.display = 'none';
 };
 </script>
 

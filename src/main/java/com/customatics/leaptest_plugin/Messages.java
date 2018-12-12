@@ -46,7 +46,7 @@ public final class Messages {
     public static final String PLUGIN_ERROR_FINISH = "Leapwork for Jenkins plugin finished with errors!";
 
     public static final String CONTROLLER_RESPONDED_WITH_ERRORS = "Controller responded with errors! Please check controller logs and try again! If does not help, try to restart controller.";
-    public static final String PLEASE_CONTACT_SUPPORT = "If nothing helps, please contact support https://leapwork.com/support and provide the next information:\n1.Plugin Logs\n2.Leapwork and plugin version\n3.Controller logs from the moment you've run the plugin.\n4.Assets without videos if possible.\nYou can find them {Path to Leapwork}/LEAPTEST/Assets\nThank you";
+    public static final String PLEASE_CONTACT_SUPPORT = "If nothing helps, please contact support https://leapwork.com/chat and provide the next information:\n1.Plugin Logs\n2.Leapwork and plugin version\n3.Controller logs from the moment you've run the plugin.\n4.Assets without videos if possible.\nYou can find them {Path to Leapwork}/LEAPWORK/Assets\nThank you";
 
     public static final String ERROR_CODE_MESSAGE = "Code: %1$s Status: %2$s!";
     public static final String COULD_NOT_CONNECT_TO = "Could not connect to %1$s! Check it and try again! ";
@@ -55,12 +55,8 @@ public final class Messages {
     public static final String INTERRUPTED_EXCEPTION = "Interrupted exception: %1$s!";
     public static final String EXECUTION_EXCEPTION = "Execution exception: %1$s!";
     public static final String IO_EXCEPTION = "I/O exception: %1$s!";
-    public static final String EXCEPTION = "Exception: %1$s!";
-    public static final String CACHE_TIMEOUT_EXCEPTION = "Cache time out exception has occurred! This schedule will be run later";
 
     public static final String LICENSE_EXPIRED = "Your Leapwork license has expired. Please contact support https://leapwork.com/support";
-
-    public static final String SCHEDULE_IS_STILL_RUNNING = "Schedule %1$s[%2$s] is still running!";
 
     public static final String STOPPING_SCHEDULE = "Stopping schedule %1$s[%2$s]!";
 
@@ -84,11 +80,33 @@ public final class Messages {
 
     public static final String PORT_NUMBER_IS_INVALID = "Port number is invalid, setting to default %1$d";
 
-    public static final String TIME_DELAY_NUMBER_IS_INVALID = "Time delay number is invalid, setting to default %1$s";
-
-    public static final String IS_POOL_MODE_FLAG_IS_INVALID = "Invalid value of pool mode flag, setting to default false";
+    public static final String TIME_DELAY_NUMBER_IS_INVALID = "Time delay number is invalid: %1$s, setting to default %2$s";
+    public static final String FULL_REPORT_FILE_PATH = "Creating report file by path: %1$s";
 
     public static final String SCHEDULE_DISABLED = "Schedule %1$s[%2$s] is disabled!";
 
+    public static final String INPUT_VALUES_MESSAGE = "LeapWork Plugin input parameters:";
+    public static final String INPUT_HOSTNAME_VALUE = "LEAPWORK controller hostname: %1$s";
+    public static final String INPUT_PORT_VALUE = "LEAPWORK controller port: %1$s";
+    public static final String INPUT_ACCESS_KEY_VALUE = "LEAPWORK controller Access Key: %1$s";
+    public static final String INPUT_REPORT_VALUE = "JUnit report file name: %1$s";
+    public static final String INPUT_WORKSPACE_VALUE = "Workspace: %1$s";
+    public static final String INPUT_SCHEDULE_NAMES_VALUE = "Schedule names: %1$s";
+    public static final String INPUT_SCHEDULE_IDS_VALUE = "Schedule ids: %1$s";
+    public static final String INPUT_DELAY_VALUE = "Delay between status checks: %1$s";
+    public static final String INPUT_DONE_VALUE = "Done Status As: %1$s";
+    public static final String INPUT_WRITE_PASSED = "Write keyframes of passed flows: %1$b";
+
+    public static final String SCHEDULE_TITLE = "Schedule: %1$s[%2$s]";
+    public static final String CASES_PASSED = "Passed testcases: %1$d";
+    public static final String CASES_FAILED = "Failed testcases: %1$d";
+    public static final String CASES_ERRORED = "Error testcases: %1$d";
+
+    public static final String TOTAL_SEPARATOR = "|---------------------------------------------------------------";
+    public static final String TOTAL_CASES_PASSED = "| Total passed testcases: %1$d";
+    public static final String TOTAL_CASES_FAILED = "| Total failed testcases: %1$d";
+    public static final String TOTAL_CASES_ERROR = "| Total error testcases: %1$d";
+
+    public static final String ERROR_NOTIFICATION = "[ERROR] There were detected case(s) with status 'Error', 'Inconclusive', 'Timeout' or 'Cancelled'. Please check the report or console output for details. Set the build status to FAILURE as the results of the cases are not deterministic..";
 
 }

@@ -1,5 +1,5 @@
 # Leapwork Integration
-This is LEAPWORK plugin for Jenkins (version 1.635 or later)
+This is LEAPWORK plugin for Jenkins (version 2.60.3 or later)
 
 # More Details
 LEAPWORK is a mighty automation testing system and now it can be used for running [smoke, functional, acceptance] tests, generating reports and a lot more in Jenkins. You can easily configure integration directly in Jenkins enjoying UI friendly configuration page with easy connection and test suites selection.
@@ -18,8 +18,13 @@ LEAPWORK is a mighty automation testing system and now it can be used for runnin
 - Command: mvn package 
 - Or simply install hpi-file from the "target" folder: Manage Jenkins -> Manage Plugins -> Advanced -> Upload Plugin -> Choose that hpi-file -> Press Upload
 
-# Version 3.0.0 release
-- For Leapwork version 2018.1.200
+# Update 3.0.1
+- Fixed bug when "Get Schedules" button showed temporary schedules
+- Fixed bug when workspace variable returned "null" in pipeline script
+- Fixed bug when JUnit parser interpreted all flows as "Failed"
+- Added "leapworkWritePassedFlowKeyFrames" boolean parameter (in "advanced"). When it's "true"/"checked" all keyframes of passed flows will be written to report file. WARNING: JUnit parser will interpret all passed flows as "Failed"
+- Fixed bug when value in "Done Status" selector was not saved
+- Several UI corrections
 - Uses new Leapwork v3 API, API v2 is not supported
 
 # Instruction
@@ -34,6 +39,36 @@ LEAPWORK is a mighty automation testing system and now it can be used for runnin
 9. Add Post-Build "Publish JUnit test result report" to your job. Enter JUnit report file name. It MUST be the same you've entered before!
 10. Run your job and get results. Enjoy!
 
+# Pipeline
+This is an example script for pipeline:
+ ```
+node{
+ stage ('Leapwork Integration') {
+    step([$class: "LeaptestJenkinsBridgeBuilder",
+      leapworkHostname: "win10-agent2",
+      leapworkPort: "9001",
+      leapworkAccessKey: "9Kz0qeoIhhNo48Id",
+      leapworkDelay: "5",
+      leapworkDoneStatusAs: "Success", //"Failed"
+      leapworkReport: "report.xml",
+      leapworkSchIds: "",//"9c3fa950-d1e8-4e12-bf17-ebc945defad5\ndb5c3a25-8eec-434c-8526-c1b2ef9c56f2",   // splitters: "\n" "," ", "
+      leapworkSchNames: "Problem schedule, Open Applications",
+      leapworkWritePassedFlowKeyFrames: true
+    ]);
+
+    step([$class: "JUnitResultArchiver", testResults: "report.xml"]);
+
+    if(currentBuild.result != "FAILURE") {
+      echo "RESULT: ${currentBuild.result}  SUCCESS INFO"
+      // do something else
+    } else {
+      echo "RESULT: ${currentBuild.result}  FAIL INFO"
+      // do something else
+    }
+  }
+ }
+```
+
 # Troubleshooting
 - If you catch an error "No such run [runId]!" after schedule starting, increase time delay parameter in "advanced".
 
@@ -47,38 +82,3 @@ LEAPWORK is a mighty automation testing system and now it can be used for runnin
 ![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-7.png)
 ![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-8.png)
 ![ScreenShot](http://customatics.com/wp-content/uploads/2017/03/jenkins-9.png)
-
-
-# Pipeline
-This is an example script for pipeline:
- ```
-node
-{
-    stage "Leapwork Integration"
-
-    step([$class: 'LeaptestJenkinsBridgeBuilder',
-    leapworkHostname:"win10-agent2",
-    leapworkPort:"9001",
-    leapworkAccessKey:"Bc6uiZNonwdOchVA",
-    leapworkDelay:"5",
-    leapworkDoneStatusAs:"Success", //"Failed"
-    leapworkReport:"report.xml",
-    leapworkSchIds:"",//"9c3fa950-d1e8-4e12-bf17-ebc945defad5\ndb5c3a25-8eec-434c-8526-c1b2ef9c56f2",   // splitters: "\n" "," ", "
-    leapworkSchNames:"Problem schedule, Open Applications"
-    ]);
-   step([$class: 'JUnitResultArchiver',
-   testResults: 'report.xml']);
-   
-    if(currentBuild.result!="FAILURE")
-    {
-    echo "RESULT: ${currentBuild.result}  SUCCESS INFO"
-    // do something else  
-    }
-    else
-    {   stage("FAIL Stage")
-        echo "RESULT: ${currentBuild.result}  FAIL INFO"
-         // do something else
-    }  
-}
-```
-

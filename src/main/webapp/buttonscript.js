@@ -23,7 +23,7 @@ function GetSch() {
                       dataType:"json",
                       success: function(json)
                       {
-                            var container = document.getElementById("LeapworkContainer");
+                            const container = document.getElementById("LeapworkContainer");
 
 
                             (jQuery)(document).click(function (event) {
@@ -39,26 +39,37 @@ function GetSch() {
                             const schul = document.createElement('ul');
                             schul.className = 'ul-treefree ul-dropfree';
 
-                            var schName = new Array();
-                            var schId = new Array();
+                            let schName = new Array();
+                            let schId = new Array();
                             container.innerHTML += '<br>';
 
-                            for (var i = 0; i < json.length; i++) {
+                            for (let i = 0; i < json.length; i++)
+                            {
 
                                     schId.push(json[i].Id);
                                     schName.push(json[i].Title);
 
-                                                var schli = document.createElement('li');
-                                                var chbx = document.createElement('input');
-                                                chbx.type = 'checkbox';
-                                                chbx.name = schName[i];
-                                                chbx.id = i;
-                                                chbx.value = schId[i];
-                                                if (json[i].IsEnabled != true)
-                                                    chbx.disabled = true;
-                                                schli.appendChild(chbx);
-                                                schli.innerHTML+=schName[i];
-                                                schul.appendChild(schli);
+                                    let schli = document.createElement('li');
+                                    let chbx = document.createElement('input');
+                                    chbx.type = 'checkbox';
+                                    chbx.name = schName[i];
+                                    chbx.id = i;
+                                    chbx.value = schId[i];
+
+                                    if (json[i].IsEnabled != true)
+                                    {
+                                        chbx.disabled = true;
+                                        schli.appendChild(chbx);
+                                        schli.innerHTML+=schName[i].strike().italics().fontcolor("gray");
+                                    }
+                                    else
+                                    {
+                                        schli.appendChild(chbx);
+                                        schli.innerHTML+=schName[i];
+                                    }
+
+                                    if(json[i].Type === "ScheduleInfo")
+                                        schul.appendChild(schli);
 
 
 
@@ -80,15 +91,15 @@ function GetSch() {
                                      	});
                                      	(jQuery)(".ul-dropfree").find("ul").slideUp(400).parents("li").children("div.drop").css({'background-position':"0 0"});
 
-                                     var TestNames = document.getElementById("schNames");
-                                     var TestIds = document.getElementById("schIds");
+                                     let TestNames = document.getElementById("schNames");
+                                     let TestIds = document.getElementById("schIds");
 
-                                     var boxes = (jQuery)("#LeapworkContainer input:checkbox");
-                                     var existingTests = new Array();
+                                     let boxes = (jQuery)("#LeapworkContainer input:checkbox");
+                                     let existingTests = new Array();
                                      existingTests = TestNames.value.split("\n");
 
                                      if (TestNames.value != null && TestIds.value != null) {
-                                            for (var i = 0; i < existingTests.length; i++) {
+                                            for (let i = 0; i < existingTests.length; i++) {
                                                 for (j = 0; j < boxes.length; j++)
                                                 {
 
@@ -105,11 +116,11 @@ function GetSch() {
 
                                      (jQuery)("#LeapworkContainer input:checkbox").on("change", function ()
                                      {
-                                         var NamesArray = new Array();
-                                         var IdsArray = new Array();
-                                         for (var i = 0; i < boxes.length; i++)
+                                         let NamesArray = new Array();
+                                         let IdsArray = new Array();
+                                         for (let i = 0; i < boxes.length; i++)
                                          {
-                                              var box = boxes[i];
+                                              let box = boxes[i];
                                               if ((jQuery)(box).prop('checked'))
                                               {
                                                     NamesArray[NamesArray.length] = (jQuery)(box).attr('name');

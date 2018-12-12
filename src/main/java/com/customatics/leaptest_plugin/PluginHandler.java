@@ -10,7 +10,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.Response;
+import hudson.EnvVars;
+import hudson.FilePath;
+import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.remoting.VirtualChannel;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -18,6 +22,7 @@ import javax.xml.bind.Marshaller;
 import java.io.*;
 import java.net.ConnectException;
 import java.net.UnknownHostException;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -35,19 +40,6 @@ public final class PluginHandler {
         return pluginHandler;
     }
 
-    public String getJunitReportFilePath(String jenkinsWorkspacePath, String reportFileName)
-    {
-        if(reportFileName.isEmpty() || "".equals(reportFileName))
-        {
-            reportFileName = "report.xml";
-        }
-
-        if(!reportFileName.contains(".xml"))
-        {
-            reportFileName +=".xml";
-        }
-        return String.format("%1$s/%2$s",jenkinsWorkspacePath,reportFileName);
-    }
     public ArrayList<String> getRawScheduleList(String rawScheduleIds, String rawScheduleTitles)
     {
         ArrayList<String> rawScheduleList = new ArrayList<>();
@@ -71,15 +63,20 @@ public final class PluginHandler {
                 return Integer.parseInt(rawTimeDelay);
             else
             {
-                listener.getLogger().println(String.format(Messages.TIME_DELAY_NUMBER_IS_INVALID,defaultTimeDelay));
+                listener.getLogger().println(String.format(Messages.TIME_DELAY_NUMBER_IS_INVALID,rawTimeDelay,defaultTimeDelay));
                 return defaultTimeDelay;
             }
         }
         catch (Exception e)
         {
-            listener.getLogger().println(String.format(Messages.TIME_DELAY_NUMBER_IS_INVALID,defaultTimeDelay));
+            listener.getLogger().println(String.format(Messages.TIME_DELAY_NUMBER_IS_INVALID,rawTimeDelay,defaultTimeDelay));
             return defaultTimeDelay;
         }
+    }
+
+    public boolean isDoneStatusAsSuccess(String doneStatusAs)
+    {
+        return doneStatusAs.contentEquals("Success");
     }
     public String getControllerApiHttpAdderess(String hostname, String rawPort, TaskListener listener)
     {
@@ -105,6 +102,16 @@ public final class PluginHandler {
         {
             listener.getLogger().println(String.format(Messages.PORT_NUMBER_IS_INVALID,defaultPortNumber));
             return defaultPortNumber;
+        }
+    }
+    public String getWorkSpaceSafe(FilePath workspace, EnvVars env)
+    {
+        try {
+            return workspace.toURI().getPath();
+        }
+        catch (Exception e)
+        {
+            return env.get(Messages.JENKINS_WORKSPACE_VARIABLE);
         }
     }
 
@@ -138,8 +145,11 @@ public final class PluginHandler {
                             for (JsonElement jsonScheduleElement : jsonScheduleList) {
                                 JsonObject jsonSchedule = jsonScheduleElement.getAsJsonObject();
 
+                                if(jsonSchedule.get("Type").getAsString().contentEquals("TemporaryScheduleInfo")) continue;
+
                                 UUID Id = Utils.defaultUuidIfNull(jsonSchedule.get("Id"), UUID.randomUUID());
                                 String Title = Utils.defaultStringIfNull(jsonSchedule.get("Title"), "null Title");
+
                                 boolean isEnabled = Utils.defaultBooleanIfNull(jsonSchedule.get("IsEnabled"), false);
 
                                 if (Id.toString().contentEquals(rawSchedule))
@@ -149,11 +159,13 @@ public final class PluginHandler {
                                         if(isEnabled)
                                         {
                                             schedulesIdTitleHashMap.put(Id, Title);
-                                            System.out.println(String.format(Messages.SCHEDULE_DETECTED, Title, rawSchedule));
+                                            listener.getLogger().println(String.format(Messages.SCHEDULE_DETECTED, Title, rawSchedule));
                                         }
                                         else
                                         {
                                             invalidSchedules.add(new InvalidSchedule(rawSchedule, String.format(Messages.SCHEDULE_DISABLED,Title,Id)));
+                                            listener.getLogger().println(String.format(Messages.SCHEDULE_DISABLED,Title, Id));
+
                                         }
                                     }
 
@@ -167,7 +179,7 @@ public final class PluginHandler {
                                         if(isEnabled)
                                         {
                                             schedulesIdTitleHashMap.put(Id, rawSchedule);
-                                            System.out.println(String.format(Messages.SCHEDULE_DETECTED,rawSchedule, Id));
+                                            listener.getLogger().println(String.format(Messages.SCHEDULE_DETECTED,rawSchedule, Id));
                                         }
                                         else
                                         {
@@ -232,6 +244,7 @@ public final class PluginHandler {
         catch (Exception e)
         {
             listener.error(Messages.SCHEDULE_TITLE_OR_ID_ARE_NOT_GOT);
+            listener.error(e.getMessage());
             throw e;
         }
 
@@ -416,11 +429,23 @@ public final class PluginHandler {
 
     }
 
-    public void createJUnitReport(String JUnitReportFilePath,final TaskListener listener, RunCollection buildResult) throws Exception {
+    public void createJUnitReport(FilePath workspace, String JUnitReportFile, final TaskListener listener, RunCollection buildResult) throws Exception {
         try
         {
-            File reportFile = new File(JUnitReportFilePath);
-            if(!reportFile.exists()) reportFile.createNewFile();
+            FilePath reportFile;
+            if(workspace.isRemote())
+            {
+                VirtualChannel channel = workspace.getChannel();
+                reportFile = new FilePath(channel, Paths.get(workspace.toURI().getPath(), JUnitReportFile).toString());
+                listener.getLogger().println(String.format(Messages.FULL_REPORT_FILE_PATH,reportFile.toURI().getPath()));
+            }
+            else
+            {
+                File file = new File(workspace.toURI().getPath(),JUnitReportFile);
+                listener.getLogger().println(String.format(Messages.FULL_REPORT_FILE_PATH,file.getCanonicalPath()));
+                if(!file.exists()) file.createNewFile();
+                reportFile = new FilePath(file);
+            }
 
             try(StringWriter writer = new StringWriter())
             {
@@ -428,28 +453,27 @@ public final class PluginHandler {
 
                 Marshaller m = context.createMarshaller();
                 m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-                //m.setProperty(Marshaller.JAXB_ENCODING,"Unicode");
                 m.marshal(buildResult, writer);
 
                 try(StringWriter formattedWriter  =  new StringWriter())
                 {
                     formattedWriter.append(writer.getBuffer().toString().replace("&amp;#xA;","&#xA;"));
-                    try (PrintStream out = new PrintStream(new FileOutputStream(reportFile.getAbsolutePath()))) {
-                        out.print(formattedWriter);
-                        out.close();
-                    }
+                    reportFile.write(formattedWriter.toString(),"UTF-8");
                 }
 
             }
         }
         catch (FileNotFoundException e) {
             listener.error(Messages.REPORT_FILE_NOT_FOUND);
+            listener.error(e.getMessage());
             throw new Exception(e);
         } catch (IOException e) {
             listener.error(Messages.REPORT_FILE_CREATION_FAILURE);
+            listener.error(e.getMessage());
             throw new Exception(e);
         } catch (JAXBException e) {
             listener.error(Messages.REPORT_FILE_CREATION_FAILURE);
+            listener.error(e.getMessage());
             throw new Exception(e);
         }
     }
@@ -569,7 +593,7 @@ public final class PluginHandler {
         }
     }
 
-    public RunItem getRunItem(AsyncHttpClient client, String controllerApiHttpAddress, String accessKey,  UUID runItemId, String scheduleTitle, final TaskListener listener) throws Exception {
+    public RunItem getRunItem(AsyncHttpClient client, String controllerApiHttpAddress, String accessKey,  UUID runItemId, String scheduleTitle,boolean doneStatusAsSuccess, boolean writePassedKeyframes,  final TaskListener listener) throws Exception {
 
         String uri = String.format(Messages.GET_RUN_ITEM_URI, controllerApiHttpAddress, runItemId.toString());
 
@@ -581,7 +605,6 @@ public final class PluginHandler {
 
                     JsonParser parser = new JsonParser();
                     JsonObject jsonRunItem = parser.parse(response.getResponseBody()).getAsJsonObject();
-                    parser = null;
 
                     //FlowInfo
                     JsonElement jsonFlowInfo = jsonRunItem.get("FlowInfo");
@@ -611,44 +634,45 @@ public final class PluginHandler {
 
                     RunItem runItem;
 
-                    if(!flowStatus.contentEquals("Initializing") &&
-                            !flowStatus.contentEquals("Connecting") &&
-                            !flowStatus.contentEquals("Connected") &&
-                            !flowStatus.contentEquals("Running") &&
-                            !flowStatus.contentEquals("NoStatus"))
+                    if(flowStatus.contentEquals("Initializing") ||
+                       flowStatus.contentEquals("Connecting")   ||
+                       flowStatus.contentEquals("Connected")    ||
+                       flowStatus.contentEquals("Running")      ||
+                       flowStatus.contentEquals("NoStatus")     ||
+                       (flowStatus.contentEquals("Passed") && !writePassedKeyframes) ||
+                       (flowStatus.contentEquals("Done") && doneStatusAsSuccess && !writePassedKeyframes))
+                    {
+                        runItem = new RunItem(flowTitle, flowStatus, milliseconds, scheduleTitle);
+                    }
+                    else
                     {
                         JsonArray jsonKeyframes = jsonRunItem.getAsJsonObject().get("Keyframes").getAsJsonArray();
 
-                        synchronized (listener) {
-                            listener.getLogger().println(Messages.CASE_CONSOLE_LOG_SEPARATOR);
-                            StringBuilder fullKeyframes = new StringBuilder("");
-                            listener.getLogger().println(String.format(Messages.CASE_INFORMATION, flowTitle, flowStatus, milliseconds));
+                        listener.getLogger().println(Messages.CASE_CONSOLE_LOG_SEPARATOR);
+                        StringBuilder fullKeyframes = new StringBuilder("");
+                        listener.getLogger().println(String.format(Messages.CASE_INFORMATION, flowTitle, flowStatus, milliseconds));
 
-                            for (JsonElement jsonKeyFrame : jsonKeyframes) {
-                                String level = Utils.defaultStringIfNull(jsonKeyFrame.getAsJsonObject().get("Level"), "Trace");
-                                if (!level.contentEquals("") && !level.contentEquals("Trace")) {
-                                    String keyFrameTimeStamp = jsonKeyFrame.getAsJsonObject().get("Timestamp").getAsJsonObject().get("Value").getAsString();
-                                    String keyFrameLogMessage = jsonKeyFrame.getAsJsonObject().get("LogMessage").getAsString();
-                                    String keyFrame = String.format(Messages.CASE_STACKTRACE_FORMAT, keyFrameTimeStamp, keyFrameLogMessage);
-                                    listener.getLogger().println(keyFrame);
-                                    fullKeyframes.append(keyFrame);
-                                    fullKeyframes.append("&#xA;");
-                                }
+                        for (JsonElement jsonKeyFrame : jsonKeyframes) {
+                            String level = Utils.defaultStringIfNull(jsonKeyFrame.getAsJsonObject().get("Level"), "Trace");
+                            if (!level.contentEquals("") && !level.contentEquals("Trace")) {
+                                String keyFrameTimeStamp = jsonKeyFrame.getAsJsonObject().get("Timestamp").getAsJsonObject().get("Value").getAsString();
+                                String keyFrameLogMessage = jsonKeyFrame.getAsJsonObject().get("LogMessage").getAsString();
+                                String keyFrame = String.format(Messages.CASE_STACKTRACE_FORMAT, keyFrameTimeStamp, keyFrameLogMessage);
+                                listener.getLogger().println(keyFrame);
+                                fullKeyframes.append(keyFrame);
+                                fullKeyframes.append("&#xA;");
                             }
-
-                            fullKeyframes.append("Environment: ").append(environmentTitle).append("&#xA;");
-                            listener.getLogger().println("Environment: " + environmentTitle);
-                            fullKeyframes.append("Schedule: ").append(scheduleTitle);
-                            listener.getLogger().println("Schedule: " + scheduleTitle);
-
-                            runItem = new RunItem(flowTitle, flowStatus, milliseconds, fullKeyframes.toString(), scheduleTitle);
                         }
+
+                        fullKeyframes.append("Environment: ").append(environmentTitle).append("&#xA;");
+                        listener.getLogger().println("Environment: " + environmentTitle);
+                        fullKeyframes.append("Schedule: ").append(scheduleTitle);
+                        listener.getLogger().println("Schedule: " + scheduleTitle);
+
+                        runItem = new RunItem(flowTitle, flowStatus, milliseconds, fullKeyframes.toString(), scheduleTitle);
                     }
-                    else
-                        runItem = new RunItem(flowTitle, flowStatus, milliseconds, scheduleTitle);
 
                     return runItem;
-
 
                 case 401:
                     String errorMessage401 = String.format(Messages.ERROR_CODE_MESSAGE, response.getStatusCode(), response.getStatusText());
@@ -680,7 +704,6 @@ public final class PluginHandler {
                     throw new Exception(errorMessage);
             }
         } catch (Exception e) {
-
             throw e;
         }
     }
