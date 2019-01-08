@@ -18,13 +18,8 @@ LEAPWORK is a mighty automation testing system and now it can be used for runnin
 - Command: mvn package 
 - Or simply install hpi-file from the "target" folder: Manage Jenkins -> Manage Plugins -> Advanced -> Upload Plugin -> Choose that hpi-file -> Press Upload
 
-# Update 3.0.1
-- Fixed bug when "Get Schedules" button showed temporary schedules
-- Fixed bug when workspace variable returned "null" in pipeline script
-- Fixed bug when JUnit parser interpreted all flows as "Failed"
-- Added "leapworkWritePassedFlowKeyFrames" boolean parameter (in "advanced"). When it's "true"/"checked" all keyframes of passed flows will be written to report file. WARNING: JUnit parser will interpret all passed flows as "Failed"
-- Fixed bug when value in "Done Status" selector was not saved
-- Several UI corrections
+# Update 3.1.0
+- For LEAPWORK version 2018.2.262
 - Uses new Leapwork v3 API, API v2 is not supported
 
 # Instruction

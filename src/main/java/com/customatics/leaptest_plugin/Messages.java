@@ -35,6 +35,7 @@ public final class Messages {
     public static final String GET_RUN_STATUS_URI = "%1$s/api/v3/run/%2$s/status";
     public static final String GET_RUN_ITEMS_IDS_URI = "%1$s/api/v3/run/%2$s/runItemIds";
     public static final String GET_RUN_ITEM_URI = "%1$s/api/v3/runItems/%2$s";
+    public static final String GET_RUN_ITEM_KEYFRAMES_URI = "%1$s/api/v3/runItems/%2$s/keyframes";
 
     public static final String INVALID_SCHEDULES = "INVALID SCHEDULES";
     public static final String PLUGIN_NAME = "Leapwork Integration";
@@ -107,6 +108,7 @@ public final class Messages {
     public static final String TOTAL_CASES_FAILED = "| Total failed testcases: %1$d";
     public static final String TOTAL_CASES_ERROR = "| Total error testcases: %1$d";
 
-    public static final String ERROR_NOTIFICATION = "[ERROR] There were detected case(s) with status 'Error', 'Inconclusive', 'Timeout' or 'Cancelled'. Please check the report or console output for details. Set the build status to FAILURE as the results of the cases are not deterministic..";
+    public static final String FAILED_TO_PARSE_RESPONSE_KEYFRAME_JSON_ARRAY = "Failed to parse response keyframe json array";
+    public static final String ERROR_NOTIFICATION = "[ERROR] There were detected case(s) with status 'Failed', 'Error', 'Inconclusive', 'Timeout' or 'Cancelled'. Please check the report or console output for details. Set the build status to FAILURE as the results of the cases are not deterministic..";
 
 }
