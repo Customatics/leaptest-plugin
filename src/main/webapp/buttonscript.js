@@ -96,7 +96,7 @@ function GetSch() {
 
                                      let boxes = (jQuery)("#LeapworkContainer input:checkbox");
                                      let existingTests = new Array();
-                                     existingTests = TestNames.value.split("\n");
+                                     existingTests = TestNames.value.split(/\r\n|\n|\s+,\s+|,\s+|\s+,|,/);
 
                                      if (TestNames.value != null && TestIds.value != null) {
                                             for (let i = 0; i < existingTests.length; i++) {

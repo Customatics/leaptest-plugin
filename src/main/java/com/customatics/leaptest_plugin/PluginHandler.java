@@ -28,6 +28,10 @@ public final class PluginHandler {
 
     private static PluginHandler pluginHandler = null;
 
+    private static final String scheduleSeparatorRegex = "\r\n|\n|\\s+,\\s+|,\\s+|\\s+,|,";
+    private static final String variableSeparatorRegex = "\\s+:\\s+|:\\s+|\\s+:|:";
+    private static final String STRING_EMPTY = "";
+
     private PluginHandler(){}
 
     public static PluginHandler getInstance()
@@ -37,12 +41,52 @@ public final class PluginHandler {
         return pluginHandler;
     }
 
+    public String getScheduleVariablesRequestPart(String rawScheduleVariables, TaskListener listener)
+    {
+        if(Utils.isBlank(rawScheduleVariables)) return STRING_EMPTY;
+
+        LinkedHashMap<String,String> variables = new LinkedHashMap<>();
+        String[] rawSplittedKeyValuePairs = rawScheduleVariables.split(scheduleSeparatorRegex);
+        for (String rawKeyValuePair : rawSplittedKeyValuePairs)
+        {
+            String[] splittedKeyAndValue = rawKeyValuePair.split(variableSeparatorRegex);
+            if(splittedKeyAndValue.length < 2){
+                listener.getLogger().println(String.format(Messages.INVALID_SCHEDULE_VARIABLE,rawKeyValuePair));
+                continue;
+            }
+            String key = splittedKeyAndValue[0];
+            String value = splittedKeyAndValue[1];
+            if(Utils.isBlank(key) || Utils.isBlank(value))
+            {
+                listener.getLogger().println(String.format(Messages.INVALID_SCHEDULE_VARIABLE,rawKeyValuePair));
+                continue;
+            }
+            if(Utils.tryAddToMap(variables,key,value) == false)
+            {
+                listener.getLogger().println(String.format(Messages.SCHEDULE_VARIABLE_KEY_DUPLICATE,rawKeyValuePair));
+                continue;
+            }
+        }
+        if(variables.isEmpty()) return STRING_EMPTY;
+        String prefix = "?";
+        StringBuilder stringBuilder = new StringBuilder();
+        for(Map.Entry<String,String> variable : variables.entrySet())
+        {
+            stringBuilder.append(prefix).append(variable.getKey()).append("=").append(variable.getValue());
+            prefix = "&";
+        }
+
+        String variableRequestPart = stringBuilder.toString();
+        listener.getLogger().println(String.format(Messages.SCHEDULE_VARIABLE_REQUEST_PART,variableRequestPart));
+        return variableRequestPart;
+    }
+
     public ArrayList<String> getRawScheduleList(String rawScheduleIds, String rawScheduleTitles)
     {
         ArrayList<String> rawScheduleList = new ArrayList<>();
 
-        String[] schidsArray = rawScheduleIds.split("\n|, |,");
-        String[] testsArray = rawScheduleTitles.split("\n|, |,");
+        String[] schidsArray = rawScheduleIds.split(scheduleSeparatorRegex);
+        String[] testsArray = rawScheduleTitles.split(scheduleSeparatorRegex);
 
         rawScheduleList.addAll(Arrays.asList(schidsArray));
         rawScheduleList.addAll(Arrays.asList(testsArray));
@@ -112,7 +156,7 @@ public final class PluginHandler {
         }
     }
 
-    public HashMap<UUID, String> getSchedulesIdTitleHashMap(
+    public LinkedHashMap<UUID, String> getSchedulesIdTitleHashMap(
             AsyncHttpClient client,
             String accessKey,
             String controllerApiHttpAddress,
@@ -121,7 +165,7 @@ public final class PluginHandler {
             ArrayList<InvalidSchedule> invalidSchedules
     ) throws  Exception {
 
-        HashMap<UUID, String> schedulesIdTitleHashMap = new HashMap<>();
+        LinkedHashMap<UUID, String> schedulesIdTitleHashMap = new LinkedHashMap<>();
 
         String scheduleListUri = String.format(Messages.GET_ALL_AVAILABLE_SCHEDULES_URI, controllerApiHttpAddress);
 
@@ -257,10 +301,11 @@ public final class PluginHandler {
             UUID scheduleId,
             String scheduleTitle,
             TaskListener listener,
-            LeapworkRun run
+            LeapworkRun run,
+            String scheduleVariablesRequestPart
     ) throws Exception {
 
-        String uri = String.format(Messages.RUN_SCHEDULE_URI, controllerApiHttpAddress, scheduleId.toString());
+        String uri = String.format(Messages.RUN_SCHEDULE_URI, controllerApiHttpAddress, scheduleId.toString(),scheduleVariablesRequestPart);
 
         try
         {
@@ -594,7 +639,7 @@ public final class PluginHandler {
                 JsonElement jsonRunId = jsonRunItem.get("AutomationRunId");
                 UUID runId = Utils.defaultUuidIfNull(jsonRunId, UUID.randomUUID());
 
-                String elapsed = defaultElapsedIfNull(jsonRunItem.get("Elapsed"));
+                String elapsed = Utils.defaultElapsedIfNull(jsonRunItem.get("Elapsed"));
                 double milliseconds = Utils.defaultDoubleIfNull(jsonRunItem.get("ElapsedSeconds"), 0);
 
                 RunItem runItem = new RunItem(flowTitle, flowStatus, milliseconds, scheduleTitle);
@@ -734,15 +779,6 @@ public final class PluginHandler {
         }
     }
 
-    private String defaultElapsedIfNull(JsonElement rawElapsed)
-    {
-        if(rawElapsed != null)
-            return rawElapsed.getAsString();
-        else
-            return "00:00:00.0000000";
-
-    }
-
     private void appendLine(StringBuilder stringBuilder, String line)
     {
         if(stringBuilder != null)
@@ -750,5 +786,17 @@ public final class PluginHandler {
             stringBuilder.append(System.getProperty("line.separator"));
             stringBuilder.append(line);
         }
+    }
+
+    public String getReportFileName(String rawReportName, String defaultReportName)
+    {
+       String reportName =  Utils.isBlank(rawReportName) ? defaultReportName : rawReportName;
+
+       if(reportName.contains(".xml") == false)
+       {
+           reportName = reportName.trim().concat(".xml");
+       }
+
+       return reportName;
     }
 }

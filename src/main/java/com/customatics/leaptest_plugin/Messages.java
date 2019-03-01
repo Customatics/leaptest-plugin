@@ -29,7 +29,7 @@ public final class Messages {
     public static final String CASE_STACKTRACE_FORMAT = "%1$s - %2$s";
 
     public static final String GET_ALL_AVAILABLE_SCHEDULES_URI = "%1$s/api/v3/schedules";
-    public static final String RUN_SCHEDULE_URI = "%1$s/api/v3/schedules/%2$s/runNow";
+    public static final String RUN_SCHEDULE_URI = "%1$s/api/v3/schedules/%2$s/runNow%3$s";
     public static final String STOP_RUN_URI = "%1$s/api/v3/run/%2$s/stop";
     public static final String STOP_SCHEDULE_URI = "%1$s/api/v3/schedules/%2$s/stop";
     public static final String GET_RUN_STATUS_URI = "%1$s/api/v3/run/%2$s/status";
@@ -86,6 +86,10 @@ public final class Messages {
 
     public static final String SCHEDULE_DISABLED = "Schedule %1$s[%2$s] is disabled!";
 
+    public static final String INVALID_SCHEDULE_VARIABLE = "Failed to parse variable: %1$s";
+    public static final String SCHEDULE_VARIABLE_KEY_DUPLICATE = "Key value pair with the same key already exists: %1$s. This pair will be ignored";
+    public static final String SCHEDULE_VARIABLE_REQUEST_PART = "Schedule variables request part: %1$s";
+
     public static final String INPUT_VALUES_MESSAGE = "LeapWork Plugin input parameters:";
     public static final String INPUT_HOSTNAME_VALUE = "LEAPWORK controller hostname: %1$s";
     public static final String INPUT_PORT_VALUE = "LEAPWORK controller port: %1$s";
@@ -97,6 +101,7 @@ public final class Messages {
     public static final String INPUT_DELAY_VALUE = "Delay between status checks: %1$s";
     public static final String INPUT_DONE_VALUE = "Done Status As: %1$s";
     public static final String INPUT_WRITE_PASSED = "Write keyframes of passed flows: %1$b";
+    public static final String INPUT_VARIABLES = "Passed schedule variables: %1$s";
 
     public static final String SCHEDULE_TITLE = "Schedule: %1$s[%2$s]";
     public static final String CASES_PASSED = "Passed testcases: %1$d";

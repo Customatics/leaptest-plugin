@@ -18,8 +18,16 @@ LEAPWORK is a mighty automation testing system and now it can be used for runnin
 - Command: mvn package 
 - Or simply install hpi-file from the "target" folder: Manage Jenkins -> Manage Plugins -> Advanced -> Upload Plugin -> Choose that hpi-file -> Press Upload
 
-# Update 3.1.0
-- For LEAPWORK version 2018.2.262
+# Update 3.1.1
+- For LEAPWORK version 2018.2.283
+- Removed "Access key" info from console log.
+- Fixed bug when schedules are executing in non-ordered way.
+- Now it is possible to insert a list of schedules to "Schedule Names" text box. List of names must be new line or comma separated.
+Be noticed that by clicking on any checkbox with schedule to select, using "Get Schedules" button, all non-existing or disabled schedules will be removed from "Schedule names" text box.
+- Added "Schedule variables" non-mandatory field. Schedule variables must be listed in "key : value" way and separated by new line or comma.
+Be noticed that all the schedules will be run with this list of variables.
+- Boolean field "leapworkWritePassedFlowKeyFrames" is not mandatory anymore.
+- Fixed problem with enforcer for compiling the plugin using sources.
 - Uses new Leapwork v3 API, API v2 is not supported
 
 # Instruction
@@ -47,8 +55,9 @@ node{
       leapworkDoneStatusAs: "Success", //"Failed"
       leapworkReport: "report.xml",
       leapworkSchIds: "",//"9c3fa950-d1e8-4e12-bf17-ebc945defad5\ndb5c3a25-8eec-434c-8526-c1b2ef9c56f2",   // splitters: "\n" "," ", "
-      leapworkSchNames: "Problem schedule, Open Applications",
-      leapworkWritePassedFlowKeyFrames: true
+      leapworkSchNames: "Problem schedule, Open Applications,    sch, sch 2,sch 3,sch 4      ,        sch 5",
+      leapworkWritePassedFlowKeyFrames: false,
+      leapworkScheduleVariables: "var1:val1, var2 : val2,      var3: val3,var4   :   val4,       var5:    val5"
     ]);
 
     step([$class: "JUnitResultArchiver", testResults: "report.xml"]);

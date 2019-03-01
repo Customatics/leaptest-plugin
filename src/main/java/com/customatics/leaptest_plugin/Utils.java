@@ -2,6 +2,7 @@ package com.customatics.leaptest_plugin;
 
 import com.google.gson.JsonElement;
 
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -115,6 +116,7 @@ public class Utils {
         else
             return "00:00:00.0000000";
     }
+
     public static double defaultDoubleIfNull(JsonElement jsonElement, double defaultValue)
     {
 
@@ -148,5 +150,23 @@ public class Utils {
         }
         else
             return defaultValue;
+    }
+
+    public static  <TKey,TValue> boolean tryAddToMap(Map<TKey,TValue> map, TKey key, TValue value)
+    {
+        if(map.get(key) != null)
+            return false;
+        else
+        {
+            map.put(key,value);
+            return true;
+        }
+    }
+
+    public static boolean isBlank(String str)
+    {
+        if(str != null && str.trim().isEmpty() == false)
+            return false;
+        return true;
     }
 }
