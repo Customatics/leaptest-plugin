@@ -87,9 +87,9 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         EnvVars env = build.getEnvironment(listener);
         ArrayList<InvalidSchedule> invalidSchedules = new ArrayList<>();
 
-        String workspacePath = pluginHandler.getWorkSpaceSafe(workspace,env);
+        printPluginInputs(listener, env.get(Messages.JENKINS_WORKSPACE_VARIABLE));
+
         this.leapworkReport = pluginHandler.getReportFileName(this.getLeapworkReport(),DescriptorImpl.DEFAULT_REPORT_NAME);
-        printPluginInputs(listener, workspacePath);
 
         ArrayList<String> rawScheduleList = pluginHandler.getRawScheduleList(leapworkSchIds, leapworkSchNames);
         String controllerApiHttpAddress = pluginHandler.getControllerApiHttpAdderess(leapworkHostname, leapworkPort, listener);
@@ -182,17 +182,22 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
 
             pluginHandler.createJUnitReport(workspace,leapworkReport,listener,buildResult);
 
-            if (buildResult.getErrors() > 0 || buildResult.getFailedTests() > 0 || invalidSchedules.size() > 0) {
-                if(buildResult.getErrors() > 0)
-                    listener.getLogger().println(Messages.ERROR_NOTIFICATION);
-                listener.getLogger().println("FAILURE");
+            if (buildResult.getErrors() > 0 ) {
+                listener.getLogger().println("[ERROR] There were detected case(s) with status 'Error', 'Inconclusive', 'Timeout' or 'Cancelled'. Please check the report or console output for details. Set the build status to FAILURE as the results of the cases are not deterministic..");
                 build.setResult(Result.FAILURE);
+                listener.getLogger().println("");
             }
-            else {
-                listener.getLogger().println("SUCCESS");
-                build.setResult(Result.SUCCESS);
+            if ( buildResult.getFailedTests() > 0 ) {
+                if ( "Success".equals(this.leapworkDoneStatusAs) ){
+                    listener.getLogger().println("There were test cases that had failures/issues, but the plugin has been configured to return: 'Success' in this case");
+                    build.setResult(Result.SUCCESS);
+                } else if ( "Unstable".equals(this.leapworkDoneStatusAs) ) {
+                    listener.getLogger().println("There were test cases that had failures/issues, but the plugin has been configured to return: 'Unstable' in this case");
+                    build.setResult(Result.UNSTABLE);
+                }
+            } else {
+                listener.getLogger().println("No issues detected");
             }
-
             listener.getLogger().println(Messages.PLUGIN_SUCCESSFUL_FINISH);
 
         }
@@ -360,6 +365,7 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         public ListBoxModel doFillLeapworkDoneStatusAsItems(@QueryParameter("leapworkDoneStatusAs") String selection) {
             return new ListBoxModel(
                     new ListBoxModel.Option("Success", "Success",selection.matches("Success")),
+                    new ListBoxModel.Option("Unstable", "Unstable",selection.matches("Unstable")),
                     new ListBoxModel.Option("Failed", "Failed",selection.matches("Failed"))
             );
         }

@@ -1,3 +1,6 @@
 <div>
-    Choose how plugin should interprete "Done" status: as "Failed" or as "Success".
+    Choose how plugin should interpret defects in test cases. It can be set to "Failed" or as "Success".
+    It should be seen in relation Jenkins JUnit parser,reporter and evaluator, which can be figured to set the job status
+    more fine grained. It is then recommended to set this to "Success".
+    NOTE: Any execution errors( network etc. and invalid test case ) will always result in FAILURE.
 </div>

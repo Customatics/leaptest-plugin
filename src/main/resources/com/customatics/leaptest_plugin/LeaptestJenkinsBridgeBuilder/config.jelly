@@ -48,7 +48,7 @@
         <f:entry title="Delay (seconds):" field="leapworkDelay">
           <f:textbox name="leapworkDelay" default="${descriptor.DEFAULT_DELAY}"/>
         </f:entry>
-        <f:entry title="Done Status:" field="leapworkDoneStatusAs">
+        <f:entry title="Done status to this if test cases fail:" field="leapworkDoneStatusAs">
             <f:select />
         </f:entry>
         <f:entry title="Write keyframes for passed flows to report?" field="leapworkWritePassedFlowKeyFrames" >
