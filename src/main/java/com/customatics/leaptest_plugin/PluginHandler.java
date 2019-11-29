@@ -459,19 +459,9 @@ public final class PluginHandler {
         try
         {
             FilePath reportFile;
-            if(workspace.isRemote())
-            {
-                VirtualChannel channel = workspace.getChannel();
-                reportFile = new FilePath(channel, Paths.get(workspace.toURI().getPath(), JUnitReportFile).toString());
-                listener.getLogger().println(String.format(Messages.FULL_REPORT_FILE_PATH,reportFile.toURI().getPath()));
-            }
-            else
-            {
-                File file = new File(workspace.toURI().getPath(),JUnitReportFile);
-                listener.getLogger().println(String.format(Messages.FULL_REPORT_FILE_PATH,file.getCanonicalPath()));
-                if(!file.exists()) file.createNewFile();
-                reportFile = new FilePath(file);
-            }
+            VirtualChannel channel = workspace.getChannel();
+            reportFile = new FilePath(channel, workspace.toURI().getPath() + "/" + JUnitReportFile);
+            listener.getLogger().println(String.format(Messages.FULL_REPORT_FILE_PATH,reportFile.toURI().getPath()));
 
             try(StringWriter writer = new StringWriter())
             {

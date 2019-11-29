@@ -87,9 +87,9 @@ public class LeaptestJenkinsBridgeBuilder extends Builder  implements SimpleBuil
         EnvVars env = build.getEnvironment(listener);
         ArrayList<InvalidSchedule> invalidSchedules = new ArrayList<>();
 
-        String workspacePath = pluginHandler.getWorkSpaceSafe(workspace,env);
+        printPluginInputs(listener, env.get(Messages.JENKINS_WORKSPACE_VARIABLE));
+
         this.leapworkReport = pluginHandler.getReportFileName(this.getLeapworkReport(),DescriptorImpl.DEFAULT_REPORT_NAME);
-        printPluginInputs(listener, workspacePath);
 
         ArrayList<String> rawScheduleList = pluginHandler.getRawScheduleList(leapworkSchIds, leapworkSchNames);
         String controllerApiHttpAddress = pluginHandler.getControllerApiHttpAdderess(leapworkHostname, leapworkPort, listener);
